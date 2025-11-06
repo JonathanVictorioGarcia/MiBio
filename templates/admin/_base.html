@@ -1,0 +1,110 @@
+{% load static %}
+<!doctype html>
+<html lang="es" class="h-full">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>{% block title %}Admin · MiBio{% endblock %}</title>
+
+  <!-- Tailwind (CDN) -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50:  "#f0f8ff",
+              100: "#dff1ff",
+              500: "#49adff",
+              600: "#2f9bfa",
+              700: "#1d6fbe",
+            },
+            accent: { 500:"#f989a3" }
+          },
+          boxShadow: {
+            soft: "0 8px 30px rgba(0,0,0,0.25)"
+          },
+          borderRadius: { '2xl': '1rem' }
+        }
+      },
+      darkMode: "class"
+    }
+  </script>
+
+  <!-- HTMX -->
+  <script src="https://unpkg.com/htmx.org@2.0.3"></script>
+  <!-- Chart.js -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+
+  <!-- Utilidades CSS (ligeras y consistentes) -->
+  <style>
+    :root{
+      --bg: #0b1220;        /* slate-950-ish */
+      --bg-soft:#0f172a;    /* slate-900 */
+      --card:#111827;       /* gray-900 */
+      --muted:#64748b;      /* slate-500 */
+      --ring:#1f2937;       /* gray-800 */
+      --brand:#49adff;
+      --accent:#f989a3;
+      --radius: 16px;
+    }
+    html,body{height:100%;}
+    body{background:linear-gradient(180deg,var(--bg),#050a16); color:#e5e7eb;}
+    .card{
+      background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.0)) , var(--card);
+      border: 1px solid rgba(255,255,255,0.06);
+      border-radius: var(--radius);
+      box-shadow: 0 10px 30px rgba(0,0,0,.35), inset 0 1px 0 rgba(255,255,255,0.02);
+    }
+    .card-hover{transition: transform .15s ease, box-shadow .15s ease;}
+    .card-hover:hover{transform: translateY(-2px); box-shadow: 0 16px 40px rgba(0,0,0,.35);}
+    .divider{border-top:1px solid rgba(255,255,255,0.06);}
+    .table-base{width:100%; border-collapse:separate; border-spacing:0;}
+    .table-base thead th{
+      text-align:left; font-weight:600; font-size:.825rem; color:#cbd5e1;
+      padding:.75rem 1rem; background:rgba(255,255,255,0.02); position:sticky; top:0; backdrop-filter: blur(4px);
+    }
+    .table-base tbody td{padding:.8rem 1rem; border-top:1px solid rgba(255,255,255,0.06); color:#e5e7eb;}
+    .badge{display:inline-flex; align-items:center; gap:.4rem; padding:.25rem .6rem; border-radius:999px; font-size:.75rem; border:1px solid rgba(255,255,255,0.08);}
+    .scrollbar-thin{scrollbar-width: thin;}
+    .scrollbar-thin::-webkit-scrollbar{height:8px;width:8px}
+    .scrollbar-thin::-webkit-scrollbar-thumb{background:#1f2937;border-radius:8px}
+    .ring-soft{box-shadow: inset 0 0 0 1px var(--ring);}
+    .btn{
+      display:inline-flex; align-items:center; gap:.5rem; padding:.6rem .9rem; border-radius:10px;
+      background:linear-gradient(180deg, rgba(73,173,255,.2), rgba(73,173,255,.05));
+      border:1px solid rgba(73,173,255,.35);
+    }
+    .btn:hover{background:linear-gradient(180deg, rgba(73,173,255,.28), rgba(73,173,255,.08));}
+  </style>
+
+  {% block head_extra %}{% endblock %}
+</head>
+<body class="h-full">
+  <div class="min-h-dvh grid md:grid-cols-[260px_1fr]">
+    <!-- Sidebar -->
+    <aside class="bg-slate-900/70 border-r border-slate-800 p-4 md:sticky md:top-0 md:h-dvh overflow-auto scrollbar-thin">
+      {% include "admin/_sidebar_admin.html" %}
+    </aside>
+
+    <!-- Main -->
+    <main class="p-4 md:p-8">
+      <!-- Topbar simple -->
+      <header class="mb-6 flex items-center justify-between">
+        <div>
+          <h1 class="text-xl md:text-2xl font-semibold tracking-tight">{% block page_title %}Panel Administrador{% endblock %}</h1>
+          <p class="text-sm text-slate-400">{% block page_subtitle %}Control central de MiBio{% endblock %}</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <a href="{% url 'dashboard:user_dashboard' %}" class="btn">Ir al panel de usuario</a>
+        </div>
+      </header>
+
+      {% block content %}{% endblock %}
+    </main>
+  </div>
+
+  {% block body_extra %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,2101 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Crear tarjeta - Mibio{% endblock %}
+
+{# CSS propio de esta página #}
+{% block head %}
+<link rel="stylesheet" href="{% static 'dashboard/css/user_vcard_create.css' %}">
+{% endblock %}
+
+{% block body %}
+<div class="min-h-dvh grid md:grid-cols-[260px_1fr]">
+  <!-- SIDEBAR -->
+  <aside
+    class="bg-slate-900/70 border-r border-slate-800 p-4 md:sticky md:top-0 md:h-dvh overflow-auto no-scrollbar"
+  >
+    {% include "dashboard/_sidebar_user.html" %}
+  </aside>
+
+  <!-- CONTENIDO -->
+  <main class="bg-gradient-to-b from-slate-900 to-slate-950">
+    <div class="wrap max-w-[1200px] mx-auto px-4 md:px-6 py-4">
+     
+      {% comment %} {% block head_extra %}
+  <link rel="stylesheet" href="{% static 'dashboard/css/user_vcard_create.css' %}">
+{% endblock %} {% endcomment %}
+
+      <!-- ====== LIENZO EDITOR + PREVIEW ====== -->
+      <div class="shell">
+        <!-- Columna izquierda -->
+        <div class="left">
+          {% comment %} ========= DOCK DE SECCIONES: pestañas para navegar entre grupos del editor ========= {% endcomment %}
+<div class="formDock">
+  {% comment %} Barra de pestañas; cada botón apunta a una sección del formulario por data-target {% endcomment %}
+  <nav class="tabs" id="editorTabs" aria-label="Secciones del editor">
+    {% comment %} Botón de pestaña activa por defecto: muestra la sección #editorForm (Perfil) {% endcomment %}
+    <button class="tab is-active" data-target="#editorForm">Perfil</button>
+
+    <button class="tab" data-target="#colorsForm">Diseño</button>
+
+    <button class="tab" data-target="#acc-heading">Acerca</button>
+
+    <button class="tab" data-target="#acc-contact">Contacto</button>
+
+    <button class="tab" data-target="#acc-images">Galería</button>
+
+    <button class="tab" data-target="#acc-social">Redes Sociales</button>
+
+    <button class="tab" data-target="#acc-links">Enlaces</button>
+  </nav>
+</div>
+
+{% comment %} ========= URL: selección del slug público de la tarjeta (mibio.mx/<slug>) ========= {% endcomment %}
+<div class="card urlCard">
+  {% comment %} Título + aviso: el slug no es editable después de guardar {% endcomment %}
+  <h3 style="display: flex; align-items: center; gap: 0.5rem">
+    URL de tu página
+    <small class="hint" style="font-weight: 500">(Una vez guardado, no se puede cambiar más tarde)</small>
+  </h3>
+
+  {% comment %} Grupo visual: prefijo fijo + input del slug en la misma “caja” {% endcomment %}
+  <div class="urlRow">
+    {% comment %} Prefijo fijo del dominio visible al usuario {% endcomment %}
+    <div class="urlPrefix">mibio.mx/</div>
+
+    {% comment %} Input del slug:
+    - minlength/pattern: fuerza formato (min 5, sólo a-z, 0-9 y guiones)
+    - value: usa valor del contexto o uno por defecto
+    - HTMX: valida disponibilidad del slug en vivo (keyup/changed con debounce) y muestra respuesta en #slugStatus
+    {% endcomment %}
+    <input
+      class="urlInput"
+      id="slug"
+      name="slug"
+      type="text"
+      placeholder="tu-enlace"
+      minlength="5"
+      pattern="[a-z0-9-]{5,}"
+      value="{{ slug|default:'rngzvhm1a4wb' }}"
+      hx-get="{% url 'vcards:check_slug' %}"
+      hx-trigger="keyup changed delay:400ms"
+      hx-params="serialize"
+      hx-target="#slugStatus"
+      hx-swap="innerHTML"
+    />
+  </div>
+
+  <div id="slugStatus" class="hint" style="margin-top: 0.5rem">
+    *mínimo 5 caracteres requeridos
+  </div>
+</div>
+
+{% comment %} ========= PLANTILLAS: selector tipo carrusel para elegir el layout visual ========= {% endcomment %}
+<div class="card templatesWrap">
+  <h3 style="display:flex; align-items:center; justify-content:space-between; gap:12px;">
+    <span>
+      Página Plantilla
+      <span class="hint">(Haga clic en la plantilla que desee)</span>
+      {% if globals.template_choice %}<span class="pillGlobal" style="margin-left:8px;">Global</span>{% endif %}
+    </span>
+
+    <!-- Toggle Global -->
+    <label class="switchLabel">
+      <span>Usar en todas mis tarjetas</span>
+      <span class="switch">
+        <input
+          type="checkbox"
+          {% if globals.template_choice %}checked{% endif %}
+          hx-post="{% url 'vcards:set_global' %}"
+          hx-vals='{"field":"template_choice","enabled":this.checked}'
+          hx-trigger="change">
+        <span class="switchTrack"></span>
+        <span class="switchDot"></span>
+      </span>
+    </label>
+  </h3>
+
+  {% comment %} Viewport del carrusel: contiene flechas y el riel con las miniaturas {% endcomment %}
+  <div class="tplViewport">
+    {% comment %} Flecha izquierda {% endcomment %}
+    <div class="tplNav left">
+      <button type="button" class="tplBtn" data-dir="-1" aria-label="Anterior">&#x276E;</button>
+    </div>
+
+    {% comment %} Riel desplazable con las opciones {% endcomment %}
+    <div class="tplRail" id="templateRadios" role="listbox" aria-label="Plantillas disponibles">
+
+      {% comment %} ITEM 1: Plantilla “buro” {% endcomment %}
+      <label class="tplItem" role="option" aria-selected="true">
+        <input
+          type="radio"
+          name="template"
+          value="buro"
+          checked
+          hx-post="{% url 'vcards:preview' %}"
+          hx-trigger="change"
+          hx-target="#preview"
+          hx-include="#editorForm, #templateRadios input[name='template']:checked">
+        <div class="tplThumb {% if globals.template_choice %}is-global{% endif %}">
+          <img src="https://cdn0070.qrcodechimp.com/images/digitalCard/dbcv2/digital-business-cards-template-real-estate.webp"
+               alt="Plantilla Buro" loading="lazy">
+          <span class="tplTick">✓</span>
+        </div>
+        <div class="tplName">Buro</div>
+      </label>
+
+      <label class="tplItem" role="option" aria-selected="false">
+        <input
+          type="radio"
+          name="template"
+          value="dual"
+          hx-post="{% url 'vcards:preview' %}"
+          hx-trigger="change"
+          hx-target="#preview"
+          hx-include="#editorForm, #templateRadios input[name='template']:checked">
+        <div class="tplThumb {% if globals.template_choice %}is-global{% endif %}">
+          <img src="https://cdn0070.qrcodechimp.com/images/digitalCard/dbcv2/digital-business-cards-template-real-estate.webp"
+               alt="Plantilla Dual" loading="lazy">
+          <span class="tplTick">✓</span>
+        </div>
+        <div class="tplName">Dual</div>
+      </label>
+
+      <label class="tplItem" role="option" aria-selected="false">
+        <input
+          type="radio"
+          name="template"
+          value="dual2"
+          hx-post="{% url 'vcards:preview' %}"
+          hx-trigger="change"
+          hx-target="#preview"
+          hx-include="#editorForm, #templateRadios input[name='template']:checked">
+        <div class="tplThumb {% if globals.template_choice %}is-global{% endif %}">
+          <img src="https://cdn0070.qrcodechimp.com/images/digitalCard/dbcv2/digital-business-cards-template-real-estate.webp"
+               alt="Plantilla Dual 2" loading="lazy">
+          <span class="tplTick">✓</span>
+        </div>
+        <div class="tplName">Dual</div>
+      </label>
+
+      <label class="tplItem" role="option" aria-selected="false">
+        <input
+          type="radio"
+          name="template"
+          value="dual2"
+          hx-post="{% url 'vcards:preview' %}"
+          hx-trigger="change"
+          hx-target="#preview"
+          hx-include="#editorForm, #templateRadios input[name='template']:checked">
+        <div class="tplThumb {% if globals.template_choice %}is-global{% endif %}">
+          <img src="https://cdn0070.qrcodechimp.com/images/digitalCard/dbcv2/digital-business-cards-template-real-estate.webp"
+               alt="Plantilla Dual 2" loading="lazy">
+          <span class="tplTick">✓</span>
+        </div>
+        <div class="tplName">Dual</div>
+      </label>
+
+      <label class="tplItem" role="option" aria-selected="false">
+        <input
+          type="radio"
+          name="template"
+          value="dual2"
+          hx-post="{% url 'vcards:preview' %}"
+          hx-trigger="change"
+          hx-target="#preview"
+          hx-include="#editorForm, #templateRadios input[name='template']:checked">
+        <div class="tplThumb {% if globals.template_choice %}is-global{% endif %}">
+          <img src="https://cdn0070.qrcodechimp.com/images/digitalCard/dbcv2/digital-business-cards-template-real-estate.webp"
+               alt="Plantilla Dual 2" loading="lazy">
+          <span class="tplTick">✓</span>
+        </div>
+        <div class="tplName">Dual</div>
+      </label>
+
+
+      <label class="tplItem" role="option" aria-selected="false">
+        <input
+          type="radio"
+          name="template"
+          value="dual2"
+          hx-post="{% url 'vcards:preview' %}"
+          hx-trigger="change"
+          hx-target="#preview"
+          hx-include="#editorForm, #templateRadios input[name='template']:checked">
+        <div class="tplThumb {% if globals.template_choice %}is-global{% endif %}">
+          <img src="https://cdn0070.qrcodechimp.com/images/digitalCard/dbcv2/digital-business-cards-template-real-estate.webp"
+               alt="Plantilla Dual 2" loading="lazy">
+          <span class="tplTick">✓</span>
+        </div>
+        <div class="tplName">Dual</div>
+      </label>
+
+      <!-- Repite el patrón para los demás ítems -->
+      <label class="tplItem" role="option" aria-selected="false">
+        <input
+          type="radio"
+          name="template"
+          value="dual3"
+          hx-post="{% url 'vcards:preview' %}"
+          hx-trigger="change"
+          hx-target="#preview"
+          hx-include="#editorForm, #templateRadios input[name='template']:checked">
+        <div class="tplThumb {% if globals.template_choice %}is-global{% endif %}">
+          <img src="https://cdn0070.qrcodechimp.com/images/digitalCard/dbcv2/digital-business-cards-template-real-estate.webp"
+               alt="Plantilla Dual 3" loading="lazy">
+          <span class="tplTick">✓</span>
+        </div>
+        <div class="tplName">Dual</div>
+      </label>
+
+      <!-- ... (más items según necesites) ... -->
+
+    </div>
+
+    {% comment %} Flecha derecha {% endcomment %}
+    <div class="tplNav right">
+      <button type="button" class="tplBtn" data-dir="1" aria-label="Siguiente">&#x276F;</button>
+    </div>
+  </div>
+</div>
+
+
+
+         {% comment %} ========== [INICIO COMENTARIOS DEL CÓDIGO | SECCIÓN: PERFIL] ==========
+Este bloque define el acordeón "Perfil" del editor de vCards. 
+- Usa HTMX para previsualizar en vivo (#preview) cuando el usuario escribe o cambia campos.
+- Contiene sub-bloques para subir Imagen de Perfil (foto), Banner e incluso Video.
+- También incluye toggles para marcar algunos activos como "globales" (se aplican a todas las tarjetas del usuario).
+- Los sub-formularios de subida (asset-uploader) son formularios separados porque requieren multipart/form-data.
+========== [FIN RESUMEN INICIAL] ========== {% endcomment %}
+
+{# ---------- PERFIL (formulario principal que dispara la previsualización) ---------- #}
+<form
+  id="editorForm"
+  class="card accordion profile-acc"
+  {# HTMX: al cargar, escribir o cambiar algo, hace POST a 'vcards:preview' para refrescar #preview #}
+  hx-post="{% url 'vcards:preview' %}"
+  hx-trigger="load, keyup changed delay:250ms, change"
+  hx-target="#preview"
+  hx-swap="innerHTML"
+  {# Incluir: la plantilla seleccionada y todos los inputs/textarea del editor para previsualizar #}
+  hx-include="#templateRadios input[name='template']:checked, #editorForm input, #editorForm textarea"
+>
+  {# Token CSRF requerido en formularios Django #}
+  {% csrf_token %}
+
+  {# Campo oculto con el nombre de la plantilla seleccionada (valor por defecto: 'buro') #}
+  <input type="hidden" name="template" id="templateField" value="buro">
+
+  {# Cabezal del acordeón (abre/cierra el cuerpo). aria-expanded=true => abierto #}
+  <button type="button" class="acc-head" aria-expanded="true">
+    <div class="acc-left"><span class="acc-title">Perfil</span></div>
+    <span class="acc-icon">−</span>
+  </button>
+
+  {# Cuerpo visible del acordeón (display:block para mostrarlo por defecto) #}
+  <div class="acc-body" style="display:block">
+
+    {# Fila que agrupa "activos" (foto, banner, video) en columnas #}
+    <div class="assets-row">
+
+  {# ===================== FOTO (Imagen de perfil) ===================== #}
+  <div class="asset-group">
+    {# Tile de vista previa de la foto. Si la foto es "global", agrega clase is-global #}
+    <div id="photoTile" class="tile avatar-preview {% if globals.photo %}is-global{% endif %}" aria-label="Foto de perfil">
+      {# Si hay foto, mostrar <img>; si no, muestra un placeholder (🖼️) #}
+      {% if photo %}<img src="{{ photo }}" alt="" class="tile-preview">{% else %}<div class="tile-empty">🖼️</div>{% endif %}
+    </div>
+
+    {% comment %} {# Sub-formulario exclusivo para subir imagen (usa multipart). 
+       HTMX actualiza el tile (#photoTile) con el HTML devuelto (outerHTML reemplaza todo el nodo). #} {% endcomment %}
+    <form class="asset-uploader"
+          hx-post="/vcards/upload-image/?field=photo"
+          hx-encoding="multipart/form-data"
+          hx-target="#photoTile" hx-swap="outerHTML">
+      {% csrf_token %}
+      {# Input de archivo escondido. El botón "tile" dispara su click vía JS (data-upload-btn) #}
+      <input type="file" name="image" accept="image/*" class="hidden-file">
+      <div class="tile" data-upload-btn title="Subir foto">⬆︎</div>
+    </form>
+
+    {# Recomendación de tamaño/aspecto #}
+    <div class="hint" style="grid-column:1/-1; text-align:center">(500×625 px, 4:5)</div>
+
+    {# Campo oculto con la URL/valor de la foto para incluirlo en la previsualización #}
+    <input type="hidden" name="photo" value="{{ photo|default:'' }}">
+
+    {# Toggle para marcar la foto como "global" (se aplicará a todas las tarjetas) #}
+    <label class="asset-toggle">
+      <span class="label">Usar en todas mis tarjetas</span>
+      <span class="switch switch--sm">
+        <input
+          type="checkbox"
+          {% if globals.photo %}checked{% endif %}
+          {# Enviar a 'vcards:set_global' cambiando el estado del campo 'photo' #}
+          hx-post="{% url 'vcards:set_global' %}"
+          hx-vals='js:{"field":"photo","enabled":this.checked}'
+          hx-trigger="change">
+        <span class="switchTrack"></span>
+        <span class="switchDot"></span>
+      </span>
+    </label>
+  </div>
+
+  {# ===================== BANNER (Imagen ancha) ===================== #}
+  <div class="asset-group">
+    {# Vista previa del banner; si es global, muestra is-global #}
+    <div id="bannerTile" class="tile banner-preview {% if globals.banner %}is-global{% endif %}" aria-label="Banner">
+      {% if banner %}<img src="{{ banner }}" alt="" class="tile-preview">{% else %}<div class="tile-empty">T</div>{% endif %}
+    </div>
+
+    {# Sub-formulario para subir banner; reemplaza el tile completo con la respuesta #}
+    <form class="asset-uploader"
+          hx-post="/vcards/upload-image/?field=banner"
+          hx-encoding="multipart/form-data"
+          hx-target="#bannerTile" hx-swap="outerHTML">
+      {% csrf_token %}
+      <input type="file" name="image" accept="image/*" class="hidden-file">
+      <div class="tile" data-upload-btn title="Subir banner">⬆︎</div>
+    </form>
+
+    {# Guía de tamaño para banner #}
+    <div class="hint" style="grid-column:1/-1; text-align:center">(160×80 px, 3:1)</div>
+
+    {# Campo oculto con el valor del banner para la previsualización #}
+    <input type="hidden" name="banner" value="{{ banner|default:'' }}">
+
+    {# Toggle para hacer el banner global #}
+    <label class="asset-toggle">
+      <span class="label">Usar en todas mis tarjetas</span>
+      <span class="switch switch--sm">
+        <input
+          type="checkbox"
+          {% if globals.banner %}checked{% endif %}
+          hx-post="{% url 'vcards:set_global' %}"
+          hx-vals='js:{"field":"banner","enabled":this.checked}'
+          hx-trigger="change">
+        <span class="switchTrack"></span>
+        <span class="switchDot"></span>
+      </span>
+    </label>
+  </div>
+
+  {# ===================== VIDEO (cuadrado) ===================== #}
+  <div class="asset-group">
+    {# Tile de vista previa de video. Si es global => is-global #}
+    <div id="videoTile" class="tile {% if globals.video %}is-global{% endif %}" aria-label="Video">
+      {% if video_url %}
+        {# Previsualiza el video en loop, sin sonido, y apto para móviles (playsinline) #}
+        <video class="tile-preview" src="{{ video_url }}" muted loop playsinline></video>
+      {% else %}
+        <div class="tile-empty">▶︎</div>
+      {% endif %}
+    </div>
+
+    {# Subida de video con multipart; reemplaza el tile con la respuesta del servidor #}
+    <form class="asset-uploader"
+          hx-post="/vcards/upload-video/?field=video"
+          hx-encoding="multipart/form-data"
+          hx-target="#videoTile" hx-swap="outerHTML">
+      {% csrf_token %}
+      <input type="file" name="video" accept="video/*" class="hidden-file">
+      <div class="tile" data-upload-btn title="Subir video">⬆︎</div>
+    </form>
+
+    {# Nota sobre el formato/relación del video #}
+    <div class="hint" style="grid-column:1/-1; text-align:center">Video cuadrado</div>
+
+    {# Campo oculto con la URL del video para previsualizar #}
+    <input type="hidden" name="video_url" value="{{ video_url|default:'' }}">
+
+    {# Toggle para marcar el video como global #}
+    <label class="asset-toggle">
+      <span class="label">Usar en todas mis tarjetas</span>
+      <span class="switch switch--sm">
+        <input
+          type="checkbox"
+          {% if globals.video %}checked{% endif %}
+          hx-post="{% url 'vcards:set_global' %}"
+          hx-vals='js:{"field":"video","enabled":this.checked}'
+          hx-trigger="change">
+        <span class="switchTrack"></span>
+        <span class="switchDot"></span>
+      </span>
+    </label>
+  </div>
+</div> {# /assets-row #}
+
+
+    {# ====================== TikTok: URL + toggle global ====================== #}
+    <div class="fieldRow">
+      <div class="left">
+        <label style="margin:0">URL Video TikTok</label>
+        {# Si el campo tiktok es global, muestra pastilla indicativa #}
+        {% if globals.tiktok %}
+          <span class="pillGlobal">Global</span>
+        {% endif %}
+      </div>
+
+      {# Switch para marcar la URL de TikTok como global #}
+      <label class="switchLabel">
+        <span>Usar en todas mis tarjetas</span>
+        <span class="switch">
+          <input
+            type="checkbox"
+            {% if globals.tiktok %}checked{% endif %}
+            hx-post="{% url 'vcards:set_global' %}"
+            {# Nota: aquí usamos event.target.checked porque el input está dentro de label #}
+            hx-vals='js:{"field":"tiktok","enabled":event.target.checked}'
+            hx-trigger="change"
+          >
+          <span class="switchTrack"></span>
+          <span class="switchDot"></span>
+        </span>
+      </label>
+    </div>
+
+    {# Input para la URL de TikTok; envía cambios a preview con debounce 300ms #}
+    <input
+      class="input"
+      name="tiktok_url"
+      placeholder="https://www.tiktok.com/@usuario/video/12345"
+      hx-post="{% url 'vcards:preview' %}"
+      hx-trigger="keyup changed delay:300ms"
+      hx-target="#preview"
+      hx-include="#editorForm"
+    >
+
+    {# ====================== Nombre + toggle global ====================== #}
+    <div class="fieldRow" style="margin-top:10px">
+      <div class="left">
+        <label style="margin:0">Nombre</label>
+        {# Indicador de que el nombre actual proviene de un valor global #}
+        {% if globals.name %}<span class="pillGlobal">Global</span>{% endif %}
+      </div>
+
+      {# Switch para hacer el nombre global #}
+      <label class="switchLabel">
+        <span>Usar en todas mis tarjetas</span>
+        <span class="switch">
+          <input
+            type="checkbox"
+            {% if globals.name %}checked{% endif %}
+            hx-post="{% url 'vcards:set_global' %}"
+            hx-vals='js:{"field":"name","enabled":event.target.checked}'
+            hx-trigger="change"
+          >
+          <span class="switchTrack"></span>
+          <span class="switchDot"></span>
+        </span>
+      </label>
+    </div>
+
+    {# Campo de texto para el nombre; refleja cambios en la previsualización #}
+    <input
+      class="input"
+      name="full_name"
+      placeholder="Nombre"
+      hx-post="{% url 'vcards:preview' %}"
+      hx-trigger="keyup changed delay:300ms"
+      hx-target="#preview"
+      hx-include="#editorForm"
+    >
+
+    {# ====================== Profesión/Título + toggle global ====================== #}
+    <div class="fieldRow" style="margin-top:10px">
+      <div class="left">
+        <label style="margin:0">Profesión</label>
+        {% if globals.title %}<span class="pillGlobal">Global</span>{% endif %}
+      </div>
+
+      {# Switch para usar el título en todas las tarjetas #}
+      <label class="switchLabel">
+        <span>Usar en todas mis tarjetas</span>
+        <span class="switch">
+          <input
+            type="checkbox"
+            {% if globals.title %}checked{% endif %}
+            hx-post="{% url 'vcards:set_global' %}"
+            hx-vals='js:{"field":"title","enabled":event.target.checked}'
+            hx-trigger="change"
+          >
+          <span class="switchTrack"></span>
+          <span class="switchDot"></span>
+        </span>
+      </label>
+    </div>
+
+    {# Campo de texto para la profesión; actualiza la vista previa con debounce #}
+    <input
+      class="input"
+      name="job_title"
+      placeholder="Profesión"
+      hx-post="{% url 'vcards:preview' %}"
+      hx-trigger="keyup changed delay:300ms"
+      hx-target="#preview"
+      hx-include="#editorForm"
+    >
+
+  </div> {# /acc-body #}
+</form>
+
+{% comment %} ========== [FIN COMENTARIOS DEL CÓDIGO | SECCIÓN: PERFIL] ========== {% endcomment %}
+
+
+
+          {% comment %}
+[SECCIÓN: DISEÑO / COLORS FORM]
+- Formulario independiente que controla colores/estilos de la vCard.
+- Usa HTMX para refrescar #preview al cargar y cuando cambian inputs (con debounce).
+- Estructura visual con acordeón: .card .accordion .colors-acc
+- Clases relevantes a revisar luego en CSS: .colors-acc, .acc-head, .acc-body, .color-swatches, .swatch, .colors-grid,
+  .fieldRow, .switchLabel, .switch, .switchTrack, .switchDot, .pillGlobal, .color-field, .color-picker, .input.hex
+{% endcomment %}
+<form
+  id="colorsForm"
+  class="card accordion colors-acc"
+  {% comment %} HTMX: envía al endpoint de previsualización para actualizar el panel derecho {% endcomment %}
+  hx-post="{% url 'vcards:preview' %}"
+  {% comment %} Dispara al cargar, y en cambios/teclado con pequeño retraso para no saturar {% endcomment %}
+  hx-trigger="load, change, keyup changed delay:250ms"
+  {% comment %} Dónde insertar el HTML devuelto (sólo el preview) {% endcomment %}
+  hx-target="#preview"
+  hx-swap="innerHTML"
+  {% comment %} Incluir la plantilla elegida y TODOS los campos de este form en la petición {% endcomment %}
+  hx-include="#templateRadios input[name='template']:checked, #colorsForm"
+>
+  {% csrf_token %}
+  {% comment %} La plantilla activa (por defecto 'buro') viaja junto con los colores {% endcomment %}
+  <input type="hidden" name="template" value="buro" />
+
+  {% comment %} Cabezal del acordeón (abre/cierra). Clases: .acc-head controla el header; .acc-icon muestra símbolo {% endcomment %}
+  <button type="button" class="acc-head" aria-expanded="true">
+    <div class="acc-left"><span class="acc-title">Diseño</span></div>
+    <span class="acc-icon">−</span>
+  </button>
+
+  {% comment %} Cuerpo visible del acordeón. inline style para mostrar abierto por defecto {% endcomment %}
+  <div class="acc-body" style="display: block">
+    {% comment %} (Futuro) “Toggle maestro” podría hacer global todo el diseño — ahora sólo es comentario guía {% endcomment %}
+
+    {% comment %}
+    PALETA RÁPIDA (color-swatches):
+    - .color-swatches: contenedor horizontal/fluido de muestras.
+    - .swatch: cada botón cuadrado/circular con un color predefinido (usa data-color para JS).
+    - Al hacer click, típicamente se llenan los inputs de color objetivo (JS).
+    {% endcomment %}
+    <div class="color-swatches" id="swatchRow" aria-label="Colores rápidos">
+      <div class="swatch" style="background: #517afa" data-color="#517AFA" title="#517AFA"></div>
+      <div class="swatch" style="background: #2b4c9b" data-color="#2B4C9B" title="#2B4C9B"></div>
+      <div class="swatch" style="background: #d6285f" data-color="#D6285F" title="#D6285F"></div>
+      <div class="swatch" style="background: #ff9f1c" data-color="#FF9F1C" title="#FF9F1C"></div>
+      <div class="swatch" style="background: #2995a0" data-color="#2995A0" title="#2995A0"></div>
+      <div class="swatch" style="background: #0e3b73" data-color="#0E3B73" title="#0E3B73"></div>
+      <div class="swatch" style="background: #5866ff" data-color="#5866FF" title="#5866FF"></div>
+    </div>
+
+    {% comment %}
+    GRID DE COLORES (colors-grid):
+    - Estructura de 2 columnas (o responsive) para agrupar campos de color.
+    - Cada bloque:
+        .fieldRow  -> título + “Global” + switch para usar en todas las tarjetas
+        .color-field -> contiene <input type="color"> y el hex textual
+        .is-target -> (sólo en el primero) posible gancho JS/estilo para foco destino
+    {% endcomment %}
+    <div class="colors-grid" id="colorsGrid">
+
+      {% comment %}
+      1) Color del título (theme_primary)
+      - “Global” indica que el valor viene del set global del usuario.
+      - Switch (.switchLabel, .switch, .switchTrack, .switchDot) envía a set_global con field + enabled.
+      - .color-picker: input de selector nativo.
+      - .input.hex: campo texto del HEX (sin validación aquí).
+      {% endcomment %}
+      <div>
+        <div class="fieldRow" style="margin: 0 0 6px">
+          <label style="margin: 0">Color del título</label>
+          {% if globals.theme_primary %}<span class="pillGlobal">Global</span>{% endif %}
+          <label class="switchLabel">
+            <span>Usar en todas mis tarjetas</span>
+            <span class="switch">
+              <input
+                type="checkbox"
+                {% if globals.theme_primary %}checked{% endif %}
+                hx-post="{% url 'vcards:set_global' %}"
+                hx-vals='{"field":"theme_primary","enabled":this.checked}'
+                hx-trigger="change"
+              />
+              <span class="switchTrack"></span>
+              <span class="switchDot"></span>
+            </span>
+          </label>
+        </div>
+
+        {% comment %} .is-target sugiere foco/estilo especial desde JS/CSS {% endcomment %}
+        <div class="color-field is-target" data-field="theme_primary">
+          <input
+            class="color-picker"
+            type="color"
+            name="theme_primary_picker"
+            value="{{ theme_primary|default:'#517AFA' }}"
+          />
+          <input
+            class="input hex"
+            type="text"
+            name="theme_primary"
+            value="{{ theme_primary|default:'#517AFA' }}"
+            placeholder="#517AFA"
+          />
+        </div>
+      </div>
+
+      {% comment %}
+      2) Color Texto (theme_secondary)
+      - Mismo patrón: indicador Global + switch -> set_global(theme_secondary)
+      - Campo color + campo HEX textual
+      {% endcomment %}
+      <div>
+        <div class="fieldRow" style="margin: 0 0 6px">
+          <label style="margin: 0">Color Texto</label>
+          {% if globals.theme_secondary %}<span class="pillGlobal">Global</span>{% endif %}
+          <label class="switchLabel">
+            <span>Usar en todas mis tarjetas</span>
+            <span class="switch">
+              <input
+                type="checkbox"
+                {% if globals.theme_secondary %}checked{% endif %}
+                hx-post="{% url 'vcards:set_global' %}"
+                hx-vals='{"field":"theme_secondary","enabled":this.checked}'
+                hx-trigger="change"
+              />
+              <span class="switchTrack"></span>
+              <span class="switchDot"></span>
+            </span>
+          </label>
+        </div>
+
+        <div class="color-field" data-field="theme_secondary">
+          <input
+            class="color-picker"
+            type="color"
+            name="theme_secondary_picker"
+            value="{{ theme_secondary|default:'#C5FEFF' }}"
+          />
+          <input
+            class="input hex"
+            type="text"
+            name="theme_secondary"
+            value="{{ theme_secondary|default:'#C5FEFF' }}"
+            placeholder="#C5FEFF"
+          />
+        </div>
+      </div>
+
+      {% comment %}
+      3) Color del Fondo (profile_text_primary)
+      - OJO: el nombre “profile_text_primary” suena a “texto”, pero etiqueta dice “Fondo”.
+        Revisaremos coherencia al auditar CSS/nombres.
+      {% endcomment %}
+      <div>
+        <div class="fieldRow" style="margin: 0 0 6px">
+          <label style="margin: 0">Color del Fondo</label>
+          {% if globals.profile_text_primary %}<span class="pillGlobal">Global</span>{% endif %}
+          <label class="switchLabel">
+            <span>Usar en todas mis tarjetas</span>
+            <span class="switch">
+              <input
+                type="checkbox"
+                {% if globals.profile_text_primary %}checked{% endif %}
+                hx-post="{% url 'vcards:set_global' %}"
+                hx-vals='{"field":"profile_text_primary","enabled":this.checked}'
+                hx-trigger="change"
+              />
+              <span class="switchTrack"></span>
+              <span class="switchDot"></span>
+            </span>
+          </label>
+        </div>
+
+        <div class="color-field" data-field="profile_text_primary">
+          <input
+            class="color-picker"
+            type="color"
+            name="profile_text_primary_picker"
+            value="{{ profile_text_primary|default:'#061244' }}"
+          />
+          <input
+            class="input hex"
+            type="text"
+            name="profile_text_primary"
+            value="{{ profile_text_primary|default:'#061244' }}"
+            placeholder="#061244"
+          />
+        </div>
+      </div>
+
+      {% comment %}
+      4) Color de los contenedores (profile_text_secondary)
+      - Igual que el anterior; revisaremos si el nombre “profile_text_secondary” coincide con su uso real en CSS.
+      {% endcomment %}
+      <div>
+        <div class="fieldRow" style="margin: 0 0 6px">
+          <label style="margin: 0">Color de los contenedores</label>
+          {% if globals.profile_text_secondary %}<span class="pillGlobal">Global</span>{% endif %}
+          <label class="switchLabel">
+            <span>Usar en todas mis tarjetas</span>
+            <span class="switch">
+              <input
+                type="checkbox"
+                {% if globals.profile_text_secondary %}checked{% endif %}
+                hx-post="{% url 'vcards:set_global' %}"
+                hx-vals='{"field":"profile_text_secondary","enabled":this.checked}'
+                hx-trigger="change"
+              />
+              <span class="switchTrack"></span>
+              <span class="switchDot"></span>
+            </span>
+          </label>
+        </div>
+
+        <div class="color-field" data-field="profile_text_secondary">
+          <input
+            class="color-picker"
+            type="color"
+            name="profile_text_secondary_picker"
+            value="{{ profile_text_secondary|default:'#76839B' }}"
+          />
+          <input
+            class="input hex"
+            type="text"
+            name="profile_text_secondary"
+            value="{{ profile_text_secondary|default:'#76839B' }}"
+            placeholder="#76839B"
+          />
+        </div>
+      </div>
+
+    </div> {# /colors-grid #}
+  </div> {# /acc-body #}
+</form>
+
+
+          {% comment %}
+[SECCIÓN: ACERCA DE / ABOUT SECTION]
+- Este bloque forma parte del acordeón principal del editor.
+- Permite que el usuario escriba un título y una descripción sobre sí mismo.
+- Usa HTMX para actualizar la previsualización (#preview) cada vez que cambia texto.
+- Cada campo (título y descripción) puede marcarse como “global” para reutilizar en todas las tarjetas.
+- Clases CSS relevantes a revisar después:
+  .accordion, .acc-head, .acc-body, .acc-left, .acc-title, .acc-icon,
+  .fieldRow, .switchLabel, .switch, .switchTrack, .switchDot, .pillGlobal, .input
+{% endcomment %}
+
+<div class="accordion" id="acc-heading">
+  {% comment %}
+  BOTÓN CABEZAL DEL ACORDEÓN:
+  - aria-controls vincula al ID del cuerpo (#acc-heading-body)
+  - aria-expanded controla si está abierto o cerrado
+  - .acc-head define el diseño del encabezado (flex, colores, etc.)
+  - .acc-icon muestra el símbolo “+” o “−” dependiendo del estado
+  {% endcomment %}
+  <button
+    type="button"
+    class="acc-head"
+    aria-controls="acc-heading-body"
+    aria-expanded="false"
+  >
+    <div class="acc-left">
+      <span class="acc-title">Acerca de</span>
+    </div>
+    <span class="acc-icon">+</span>
+  </button>
+
+  {% comment %}
+  CUERPO DEL ACORDEÓN (.acc-body)
+  - Contiene los campos del formulario (título y descripción)
+  - Se despliega o colapsa con el botón anterior
+  {% endcomment %}
+  <div class="acc-body" id="acc-heading-body">
+
+    {% comment %}
+    ===== CAMPO: TÍTULO =====
+    - .fieldRow agrupa la etiqueta + switch global
+    - .pillGlobal aparece si el campo tiene valor global en el sistema
+    - .switchLabel incluye un interruptor tipo toggle que llama a set_global
+    {% endcomment %}
+    <div class="fieldRow">
+      <div class="left">
+        <label style="margin: 0">Título</label>
+        {% if globals.about_title %}
+        <span class="pillGlobal">Global</span>
+        {% endif %}
+      </div>
+
+      {% comment %}
+      Toggle (checkbox) para activar el modo global del campo:
+      - Si está checked, este valor se aplicará en todas las vCards del usuario
+      - Usa HTMX (hx-post) para notificar a ‘vcards:set_global’
+      {% endcomment %}
+      <label class="switchLabel">
+        <span>Usar en todas mis tarjetas</span>
+        <span class="switch">
+          <input
+            type="checkbox"
+            {% if globals.about_title %}checked{% endif %}
+            hx-post="{% url 'vcards:set_global' %}"
+            hx-vals='{"field":"about_title","enabled":this.checked}'
+            hx-trigger="change"
+          />
+          <span class="switchTrack"></span>
+          <span class="switchDot"></span>
+        </span>
+      </label>
+    </div>
+
+    {% comment %}
+    INPUT DE TEXTO:
+    - Campo del título “Acerca de”.
+    - Usa HTMX para enviar cambios y actualizar la vista previa.
+    - .input es la clase genérica de estilos (borde, padding, etc.)
+    {% endcomment %}
+    <input
+      class="input"
+      name="section_title"
+      placeholder="Acerca de"
+      hx-post="{% url 'vcards:preview' %}"
+      hx-trigger="keyup changed delay:250ms"
+      hx-target="#preview"
+      hx-include="#editorForm"
+    />
+
+    {% comment %}
+    ===== CAMPO: DESCRIPCIÓN =====
+    - Mismo patrón: indicador Global + toggle + campo textarea
+    - La descripción también puede marcarse global
+    {% endcomment %}
+    <div class="fieldRow" style="margin-top: 14px">
+      <div class="left">
+        <label style="margin: 0">Descripción</label>
+        {% if globals.about_desc %}
+        <span class="pillGlobal">Global</span>
+        {% endif %}
+      </div>
+
+      <label class="switchLabel">
+        <span>Usar en todas mis tarjetas</span>
+        <span class="switch">
+          <input
+            type="checkbox"
+            {% if globals.about_desc %}checked{% endif %}
+            hx-post="{% url 'vcards:set_global' %}"
+            hx-vals='{"field":"about_desc","enabled":this.checked}'
+            hx-trigger="change"
+          />
+          <span class="switchTrack"></span>
+          <span class="switchDot"></span>
+        </span>
+      </label>
+    </div>
+
+    {% comment %}
+    TEXTAREA DE DESCRIPCIÓN:
+    - Permite escribir varias líneas (rows=4)
+    - HTMX vuelve a hacer POST a preview para actualizar
+    - .input reutilizada también aquí (usa mismo estilo que inputs)
+    {% endcomment %}
+    <textarea
+      class="input"
+      name="section_desc"
+      rows="4"
+      placeholder="Descripción"
+      hx-post="{% url 'vcards:preview' %}"
+      hx-trigger="keyup changed delay:250ms"
+      hx-target="#preview"
+      hx-include="#editorForm"
+    ></textarea>
+
+  </div> {# /acc-body #}
+</div> {# /accordion #}
+
+
+{% comment %}
+[SECCIÓN: CONTACTOS]
+- Este bloque define la sección del formulario donde el usuario agrega información de contacto (teléfonos, correos, direcciones).
+- Forma parte del acordeón principal del editor.
+- Permite crear varios elementos dinámicos dentro de una lista (.contact-list).
+- Cada campo usa HTMX para actualizar el preview en tiempo real.
+- Clases CSS que revisaremos más adelante:
+  .accordion, .acc-head, .acc-body, .acc-left, .acc-title, .acc-icon,
+  .fieldRow, .switchLabel, .switch, .switchTrack, .switchDot,
+  .pillGlobal, .input, .contact-list, .contact-item, .contact-grid,
+  .badge-del, .add-row, .btn-add, .menu, .menu-list, .menu-item
+{% endcomment %}
+
+<div class="accordion" id="acc-contact">
+  {% comment %}
+  BOTÓN CABEZAL DEL ACORDEÓN
+  - aria-controls vincula al cuerpo (#acc-contact-body)
+  - aria-expanded controla si el acordeón está abierto o cerrado
+  - .acc-head define la apariencia del encabezado
+  - .acc-icon muestra “+” o “−” según estado (usualmente controlado por JS)
+  {% endcomment %}
+  <button
+    type="button"
+    class="acc-head"
+    aria-controls="acc-contact-body"
+    aria-expanded="false">
+    <div class="acc-left">
+      <span class="acc-title">Contactos</span>
+    </div>
+    <span class="acc-icon">+</span>
+  </button>
+
+  {% comment %}
+  CUERPO DEL ACORDEÓN (.acc-body)
+  - Contiene los campos del título general de la sección y la lista de contactos.
+  {% endcomment %}
+  <div class="acc-body" id="acc-contact-body">
+
+    {% comment %}
+    ===== CAMPO: TÍTULO DE LA SECCIÓN =====
+    - “Contactos” es el encabezado visible sobre la lista de items.
+    - Puede marcarse como global para aplicarse a todas las vCards del usuario.
+    {% endcomment %}
+    <div class="fieldRow">
+      <div class="left">
+        <label style="margin:0">Título</label>
+        {% if globals.contact_section_title %}
+          <span class="pillGlobal">Global</span>
+        {% endif %}
+      </div>
+
+      {% comment %}
+      SWITCH GLOBAL:
+      - Permite indicar si este título debe usarse en todas las tarjetas.
+      - Envía la acción a ‘vcards:set_global’ con el campo “contact_section_title”.
+      {% endcomment %}
+      <label class="switchLabel">
+        <span>Usar en todas mis tarjetas</span>
+        <span class="switch">
+          <input
+            type="checkbox"
+            {% if globals.contact_section_title %}checked{% endif %}
+            hx-post="{% url 'vcards:set_global' %}"
+            hx-vals='js:{"field":"contact_section_title","enabled":this.checked}'
+            hx-trigger="change">
+          <span class="switchTrack"></span>
+          <span class="switchDot"></span>
+        </span>
+      </label>
+    </div>
+
+    {% comment %}
+    INPUT DE TÍTULO DE SECCIÓN
+    - Texto editable por el usuario (ej: “Contáctame” o “Información”)
+    - HTMX actualiza la vista previa con cada cambio
+    {% endcomment %}
+    <input
+      class="input"
+      name="contact_section_title"
+      placeholder="Contactos"
+      hx-post="{% url 'vcards:preview' %}"
+      hx-trigger="keyup changed delay:250ms"
+      hx-target="#preview"
+      hx-include="#editorForm"
+    />
+
+    {% comment %}
+    LISTA DE CONTACTOS (.contact-list)
+    - Contiene todos los elementos agregados por el usuario (número, email, dirección, etc.)
+    - Cada item (.contact-item) tiene inputs propios y puede eliminarse.
+    {% endcomment %}
+    <div class="contact-list" id="contactList">
+
+      {% comment %}
+      ITEM POR DEFECTO: Teléfono
+      - data-type="number" sirve para identificar el tipo de contacto.
+      - .badge-del muestra un icono 🗑️ para eliminar este bloque.
+      - Dentro hay un título, un switch global, y dos inputs (etiqueta y número).
+      {% endcomment %}
+      <div class="contact-item" data-type="number">
+        <div class="badge-del" title="Eliminar" data-del>🗑️</div>
+
+        <div class="fieldRow" style="margin-top:0">
+          <div class="left">
+            <div class="contact-title">Teléfono</div>
+            {% if globals.contact_number %}
+              <span class="pillGlobal">Global</span>
+            {% endif %}
+          </div>
+
+          {% comment %}
+          SWITCH GLOBAL DEL ITEM
+          - Permite marcar este tipo de contacto (teléfono) como global.
+          - Envia a set_global(field='contact_number')
+          {% endcomment %}
+          <label class="switchLabel">
+            <span>Usar en todas mis tarjetas</span>
+            <span class="switch">
+              <input
+                type="checkbox"
+                {% if globals.contact_number %}checked{% endif %}
+                hx-post="{% url 'vcards:set_global' %}"
+                hx-vals='js:{"field":"contact_number","enabled":this.checked}'
+                hx-trigger="change">
+              <span class="switchTrack"></span>
+              <span class="switchDot"></span>
+            </span>
+          </label>
+        </div>
+
+        {% comment %}
+        GRID DE CAMPOS (.contact-grid)
+        - Agrupa dos inputs: “Etiqueta” y “Número”.
+        - Cada uno envía cambios con HTMX para refrescar la vista previa.
+        - Los arrays [] permiten agregar múltiples contactos del mismo tipo.
+        {% endcomment %}
+        <div class="contact-grid">
+          <div>
+            <label>Etiqueta</label>
+            <input
+              class="input"
+              name="contact_label[]"
+              placeholder="Etiqueta"
+              hx-post="{% url 'vcards:preview' %}"
+              hx-trigger="keyup changed delay:250ms"
+              hx-target="#preview"
+              hx-include="#editorForm"
+            />
+          </div>
+          <div>
+            <label>Número</label>
+            <input
+              class="input"
+              name="contact_value[]"
+              placeholder="+52 55 1234 5678"
+              hx-post="{% url 'vcards:preview' %}"
+              hx-trigger="keyup changed delay:250ms"
+              hx-target="#preview"
+              hx-include="#editorForm"
+            />
+          </div>
+        </div>
+
+        {% comment %}
+        INPUT OCULTO:
+        - Guarda el tipo del contacto (en este caso “number”)
+        - Permite diferenciar tipos al procesar en el backend.
+        {% endcomment %}
+        <input type="hidden" name="contact_type[]" value="number">
+      </div> {# /contact-item #}
+    </div> {# /contact-list #}
+
+    {% comment %}
+    BOTÓN “+ AGREGAR”
+    - .add-row contiene un menú que se despliega con el botón principal.
+    - .btn-add abre el menú de opciones (Correo, Número, Dirección).
+    - .menu-list se muestra/oculta mediante JS.
+    - Cada .menu-item crea un nuevo contacto del tipo correspondiente.
+    {% endcomment %}
+    <div class="add-row" style="margin-top:10px">
+      <div class="menu" id="contactMenu">
+        <button type="button" class="btn-add" id="contactMenuBtn">+ Agregar</button>
+        <div class="menu-list" id="contactMenuList" hidden>
+          <button type="button" class="menu-item" data-new="email">Correo electrónico</button>
+          <button type="button" class="menu-item" data-new="number">Número</button>
+          <button type="button" class="menu-item" data-new="address">Dirección</button>
+        </div>
+      </div>
+    </div>
+  </div> {# /acc-body #}
+</div> {# /accordion #}
+
+
+
+       {% comment %}
+[SECCIÓN: GALERÍA / IMÁGENES]
+- Este acordeón permite al usuario configurar la sección de galería de su tarjeta digital.
+- Se puede elegir el tipo de vista (lista o cuadrícula) y subir imágenes.
+- Cada acción (toggle, cambio, subida de imagen) actualiza la vista previa en tiempo real con HTMX.
+- Clases CSS relevantes a revisar después:
+  .accordion, .acc-head, .acc-body, .acc-left, .acc-title, .acc-icon,
+  .fieldRow, .switchLabel, .switch, .switchTrack, .switchDot,
+  .pillGlobal, .hint, .view-types, .vt, .mock, .name,
+  .image-list, .image-add
+{% endcomment %}
+
+<div class="accordion" id="acc-images">
+  {% comment %}
+  CABEZAL DEL ACORDEÓN:
+  - Controla la expansión del cuerpo (#acc-images-body)
+  - .acc-head define el estilo visual del encabezado.
+  - .acc-icon cambia de "+" a "−" cuando se abre (mediante CSS o JS).
+  {% endcomment %}
+  <button
+    type="button"
+    class="acc-head"
+    aria-controls="acc-images-body"
+    aria-expanded="false"
+  >
+    <div class="acc-left"><span class="acc-title">Galería</span></div>
+    <span class="acc-icon">+</span>
+  </button>
+
+  {% comment %}
+  CUERPO DEL ACORDEÓN (.acc-body)
+  - Contiene todos los controles para personalizar la galería (vista y fotos).
+  {% endcomment %}
+  <div class="acc-body" id="acc-images-body">
+
+    {% comment %}
+    ===== SECCIÓN: TIPO DE VISTA =====
+    - Permite seleccionar cómo se mostrará la galería (lista o cuadrícula).
+    - El campo puede marcarse como global.
+    {% endcomment %}
+    <div class="fieldRow">
+      <div class="left">
+        <label style="margin: 0;">Tipo de vista</label>
+        {% if globals.gallery_view %}
+          <span class="pillGlobal">Global</span>
+        {% endif %}
+      </div>
+
+      {% comment %}
+      SWITCH GLOBAL:
+      - Activa el uso global del tipo de vista.
+      - Envía a 'vcards:set_global' con el campo “gallery_view”.
+      {% endcomment %}
+      <label class="switchLabel">
+        <span>Usar en todas mis tarjetas</span>
+        <span class="switch">
+          <input
+            type="checkbox"
+            {% if globals.gallery_view %}checked{% endif %}
+            hx-post="{% url 'vcards:set_global' %}"
+            hx-vals='js:{"field":"gallery_view","enabled":event.target.checked}'
+            hx-trigger="change"
+          >
+          <span class="switchTrack"></span>
+          <span class="switchDot"></span>
+        </span>
+      </label>
+    </div>
+
+    {% comment %}
+    OPCIONES DE VISTA (.view-types)
+    - Grupo de radios que define el layout de las imágenes.
+    - Cada .vt representa una opción con un mock visual y un nombre.
+    - "checked" en “list” indica vista predeterminada.
+    {% endcomment %}
+    <div class="view-types" id="viewTypes">
+      <div class="vt">
+        <input
+          type="radio"
+          id="vt-list"
+          name="images_view"
+          value="list"
+          checked
+        />
+        <label for="vt-list">
+          <div class="mock">Lista</div>
+          <span class="name">Lista</span>
+        </label>
+      </div>
+
+      <div class="vt">
+        <input
+          type="radio"
+          id="vt-grid1"
+          name="images_view"
+          value="grid1"
+        />
+        <label for="vt-grid1">
+          <div class="mock">Cuadrícula 1</div>
+          <span class="name">Grid 1</span>
+        </label>
+      </div>
+
+      <div class="vt">
+        <input
+          type="radio"
+          id="vt-grid2"
+          name="images_view"
+          value="grid2"
+        />
+        <label for="vt-grid2">
+          <div class="mock">Cuadrícula 2</div>
+          <span class="name">Grid 2</span>
+        </label>
+      </div>
+    </div>
+
+    {% comment %}
+    ===== SECCIÓN: FOTOS =====
+    - Aquí el usuario puede subir imágenes para su galería.
+    - También tiene la opción de marcar las imágenes como globales.
+    {% endcomment %}
+    <div class="fieldRow" style="margin-top: 20px;">
+      <div class="left">
+        <label style="margin: 0;">Fotos <span class="hint">(600×600 px, 1:1 o 4:5)</span></label>
+        {% if globals.gallery_images %}
+          <span class="pillGlobal">Global</span>
+        {% endif %}
+      </div>
+
+      {% comment %}
+      SWITCH GLOBAL:
+      - Marca las imágenes de la galería como globales.
+      - Usa HTMX para enviar el estado al servidor.
+      {% endcomment %}
+      <label class="switchLabel">
+        <span>Usar en todas mis tarjetas</span>
+        <span class="switch">
+          <input
+            type="checkbox"
+            {% if globals.gallery_images %}checked{% endif %}
+            hx-post="{% url 'vcards:set_global' %}"
+            hx-vals='js:{"field":"gallery_images","enabled":event.target.checked}'
+            hx-trigger="change"
+          >
+          <span class="switchTrack"></span>
+          <span class="switchDot"></span>
+        </span>
+      </label>
+    </div>
+
+    {% comment %}
+    LISTA DE IMÁGENES (.image-list)
+    - Contiene las miniaturas o placeholders de imágenes subidas.
+    - Al subir una nueva imagen, se añade dinámicamente dentro de este contenedor.
+    {% endcomment %}
+    <div class="image-list" id="imageList">
+      {% comment %}
+      FORMULARIO DE SUBIDA DE IMÁGENES:
+      - hx-post: envía el archivo a "/vcards/upload-image/"
+      - hx-encoding="multipart/form-data": permite subir archivos binarios.
+      - hx-swap="beforeend": agrega la nueva imagen al final de la lista.
+      - hx-on="htmx:afterRequest": ejecuta un script JS después de subir una imagen,
+        recolecta los datos del formulario principal y actualiza la vista previa.
+      {% endcomment %}
+      <form
+        id="imageUploadForm"
+        hx-post="/vcards/upload-image/"
+        hx-encoding="multipart/form-data"
+        hx-target="#imageList"
+        hx-swap="beforeend"
+        hx-on="htmx:afterRequest:
+          const f=document.querySelector('#editorForm');
+          const fd=new FormData(f);
+          document.querySelectorAll('#imageList input[name=&quot;images[]&quot;]').forEach(i=>fd.append('images[]', i.value));
+          const vr=document.querySelector('input[name=&quot;images_view&quot;]:checked'); if(vr) fd.set('images_view', vr.value);
+          const bgv=document.getElementById('imagesBgValue'); if(bgv) fd.set('images_card_bg', bgv.value);
+          htmx.ajax('POST','/vcards/preview/',{target:'#preview',values:fd});"
+        style="display: inline-block"
+      >
+        {% csrf_token %}
+        {% comment %}
+        INPUT FILE:
+        - Oculto para que se active al presionar el botón.
+        - Acepta únicamente archivos de imagen.
+        {% endcomment %}
+        <input
+          type="file"
+          name="image"
+          id="imageFile"
+          accept="image/*"
+          style="display: none"
+        />
+
+        {% comment %}
+        BOTÓN PARA SUBIR IMÁGENES (.image-add)
+        - Al hacer clic, simula un click sobre el input file oculto.
+        - Ícono “⬆︎” indica subida.
+        {% endcomment %}
+        <button
+          type="button"
+          class="image-add"
+          onclick="document.getElementById('imageFile').click();"
+          title="Subir imagen"
+        >
+          ⬆︎
+        </button>
+      </form>
+    </div> {# /image-list #}
+  </div> {# /acc-body #}
+</div> {# /accordion #}
+
+
+
+<!-- REDES SOCIALES -->
+<div class="accordion" id="acc-social">
+  <button
+    type="button"
+    class="acc-head"
+    aria-controls="acc-social-body"
+    aria-expanded="false">
+    <div class="acc-left">
+      <span class="acc-title">Redes sociales</span>
+    </div>
+    <span class="acc-icon">+</span>
+  </button>
+
+  <div class="acc-body" id="acc-social-body">
+
+    <!-- Título + toggle global -->
+    <div class="fieldRow">
+      <label style="margin:0">Título</label>
+      <label class="switchLabel">
+        <span>Usar en todas mis tarjetas</span>
+        <span class="switch">
+          <input
+            type="checkbox"
+            {% if globals.social_section_title %}checked{% endif %}
+            hx-post="{% url 'vcards:set_global' %}"
+            hx-vals='{"field":"social_section_title","enabled":this.checked}'
+            hx-trigger="change">
+          <span class="switchTrack"></span>
+          <span class="switchDot"></span>
+        </span>
+      </label>
+    </div>
+
+    <input
+      class="input"
+      name="social_section_title"
+      placeholder="Links de redes sociales"
+      hx-post="{% url 'vcards:preview' %}"
+      hx-trigger="keyup changed delay:250ms"
+      hx-target="#preview"
+      hx-include="#editorForm">
+
+    <!-- LISTA DE ITEMS -->
+    <div class="social-list" id="socialList">
+
+      {% comment %} ITEM inicial (visible) {% endcomment %}
+      <div class="social-item" data-id="social_default">
+        <div class="itemHead">
+          <div class="left">
+            <div class="title">Red social</div>
+            {% if globals.social_items and globals.social_items.social_default %}
+              <span class="pillGlobal">Global</span>
+            {% endif %}
+          </div>
+
+          <div class="actions">
+            <label class="switchLabel">
+              <span>Usar en todas mis tarjetas</span>
+              <span class="switch">
+                <input
+                  type="checkbox"
+                  {% if globals.social_items and globals.social_items.social_default %}checked{% endif %}
+                  hx-post="{% url 'vcards:set_global' %}"
+                  hx-vals='js:(function(el){
+                    return {
+                      field: "social_item",
+                      id: el.closest(".social-item")?.dataset.id || "",
+                      enabled: el.checked
+                    };
+                  })(this)'
+                  hx-trigger="change">
+                <span class="switchTrack"></span>
+                <span class="switchDot"></span>
+              </span>
+            </label>
+
+            <button type="button" class="badge-del badge-del--inline" title="Eliminar">🗑️</button>
+          </div>
+        </div>
+
+        <div class="social-grid">
+          <div class="select-wrap">
+            <select
+              class="select"
+              name="social_network[]"
+              hx-post="{% url 'vcards:preview' %}"
+              hx-trigger="change"
+              hx-target="#preview"
+              hx-include="#editorForm">
+              <option>Facebook</option>
+              <option>Instagram</option>
+              <option>LinkedIn</option>
+              <option value="X">X (Twitter)</option>
+              <option>TikTok</option>
+              <option>YouTube</option>
+              <option>WhatsApp</option>
+              <option>Telegram</option>
+              <option>Snapchat</option>
+              <option>Pinterest</option>
+              <option>Reddit</option>
+              <option>GitHub</option>
+              <option>Twitch</option>
+              <option>Discord</option>
+              <option>Behance</option>
+              <option>Dribbble</option>
+              <option>Medium</option>
+              <option>Threads</option>
+              <option>Bluesky</option>
+              <option>Personalizado</option>
+            </select>
+          </div>
+
+          <input
+            class="input"
+            name="social_url[]"
+            placeholder="URL"
+            hx-post="{% url 'vcards:preview' %}"
+            hx-trigger="keyup changed delay:300ms"
+            hx-target="#preview"
+            hx-include="#editorForm">
+        </div>
+
+        <label style="margin-top:12px">Título</label>
+        <div class="social-grid" style="grid-template-columns:1fr 1fr">
+          <input
+            class="input"
+            name="social_label[]"
+            placeholder="Facebook"
+            hx-post="{% url 'vcards:preview' %}"
+            hx-trigger="keyup changed delay:300ms"
+            hx-target="#preview"
+            hx-include="#editorForm">
+
+          <input
+            class="input"
+            name="social_desc[]"
+            placeholder="Síguenos en Facebook"
+            hx-post="{% url 'vcards:preview' %}"
+            hx-trigger="keyup changed delay:300ms"
+            hx-target="#preview"
+            hx-include="#editorForm">
+        </div>
+      </div>
+      <!-- /social-item -->
+
+    </div> <!-- /#socialList -->
+
+    <div class="add-row" style="margin-top: 12px">
+      <button type="button" class="btn-add" id="addSocialBtn">+ Agregar link</button>
+    </div>
+
+    {% comment %} TEMPLATE para nuevos items de redes {% endcomment %}
+    <template id="socialItemTemplate">
+      <div class="social-item" data-id="">
+        <div class="itemHead">
+          <div class="left">
+            <div class="title">Red social</div>
+          </div>
+
+          <div class="actions">
+            <label class="switchLabel">
+              <span>Usar en todas mis tarjetas</span>
+              <span class="switch">
+                <input
+                  type="checkbox"
+                  hx-post="{% url 'vcards:set_global' %}"
+                  hx-vals='js:(function(el){
+                    return {
+                      field: "social_item",
+                      id: el.closest(".social-item")?.dataset.id || "",
+                      enabled: el.checked
+                    };
+                  })(this)'
+                  hx-trigger="change">
+                <span class="switchTrack"></span>
+                <span class="switchDot"></span>
+              </span>
+            </label>
+
+            <button type="button" class="badge-del badge-del--inline" title="Eliminar">🗑️</button>
+          </div>
+        </div>
+
+        <div class="social-grid">
+          <div class="select-wrap">
+            <select
+              class="select"
+              name="social_network[]"
+              hx-post="{% url 'vcards:preview' %}"
+              hx-trigger="change"
+              hx-target="#preview"
+              hx-include="#editorForm">
+              <option>Facebook</option>
+              <option>Instagram</option>
+              <option>LinkedIn</option>
+              <option value="X">X (Twitter)</option>
+              <option>TikTok</option>
+              <option>YouTube</option>
+              <option>WhatsApp</option>
+              <option>Telegram</option>
+              <option>Snapchat</option>
+              <option>Pinterest</option>
+              <option>Reddit</option>
+              <option>GitHub</option>
+              <option>Twitch</option>
+              <option>Discord</option>
+              <option>Behance</option>
+              <option>Dribbble</option>
+              <option>Medium</option>
+              <option>Threads</option>
+              <option>Bluesky</option>
+              <option>Personalizado</option>
+            </select>
+          </div>
+
+          <input
+            class="input"
+            name="social_url[]"
+            placeholder="URL"
+            hx-post="{% url 'vcards:preview' %}"
+            hx-trigger="keyup changed delay:300ms"
+            hx-target="#preview"
+            hx-include="#editorForm">
+        </div>
+
+        <label style="margin-top:12px">Título</label>
+        <div class="social-grid" style="grid-template-columns:1fr 1fr">
+          <input
+            class="input"
+            name="social_label[]"
+            placeholder="Título"
+            hx-post="{% url 'vcards:preview' %}"
+            hx-trigger="keyup changed delay:300ms"
+            hx-target="#preview"
+            hx-include="#editorForm">
+
+          <input
+            class="input"
+            name="social_desc[]"
+            placeholder="Descripción"
+            hx-post="{% url 'vcards:preview' %}"
+            hx-trigger="keyup changed delay:300ms"
+            hx-target="#preview"
+            hx-include="#editorForm">
+        </div>
+      </div>
+    </template>
+
+  </div>
+</div>
+
+        
+
+
+
+{% comment %}
+[SECCIÓN: ENLACES — versión con menú "+ Agregar" y template clonable]
+- Cambios clave:
+  1) Se mantiene el header de la sección con Título/Descripción + toggles globales.
+  2) Cada item (.link-item) usa header "itemHead" con el toggle a la derecha junto al botón eliminar.
+  3) Se agrega el MENÚ "+ Agregar enlace" (con opciones) y un <template> para clonar nuevos items.
+  4) Se incluye <script> para abrir/cerrar menú, crear/eliminar items y refrescar el preview vía HTMX.
+{% endcomment %}
+
+<div class="accordion" id="acc-links">
+  {% comment %} CABEZAL DEL ACORDEÓN {% endcomment %}
+  <button
+    type="button"
+    class="acc-head"
+    aria-controls="acc-links-body"
+    aria-expanded="false">
+    <div class="acc-left"><span class="acc-title">Enlaces</span></div>
+    <span class="acc-icon">+</span>
+  </button>
+
+  <div class="acc-body" id="acc-links-body">
+
+    {% comment %} ===== TARJETA CABECERA: TÍTULO + DESCRIPCIÓN (con toggles globales) ===== {% endcomment %}
+    <div class="links-card">
+
+      {% comment %} Título de sección + toggle global {% endcomment %}
+      <div class="fieldRow" style="margin-bottom:8px">
+        <div class="left">
+          <label style="margin:0">Título</label>
+          {% if globals.links_section_title %}<span class="pillGlobal">Global</span>{% endif %}
+        </div>
+        <label class="switchLabel">
+          <span>Usar en todas mis tarjetas</span>
+          <span class="switch">
+            <input
+              type="checkbox"
+              {% if globals.links_section_title %}checked{% endif %}
+              hx-post="{% url 'vcards:set_global' %}"
+              hx-vals='{"field":"links_section_title","enabled":this.checked}'
+              hx-trigger="change" />
+            <span class="switchTrack"></span>
+            <span class="switchDot"></span>
+          </span>
+        </label>
+      </div>
+
+      <input
+        class="input"
+        name="links_section_title"
+        placeholder="Enlaces web"
+        hx-post="{% url 'vcards:preview' %}"
+        hx-trigger="keyup changed delay:300ms"
+        hx-target="#preview"
+        hx-include="#editorForm" />
+
+      {% comment %} Descripción de sección + toggle global {% endcomment %}
+      <div class="fieldRow" style="margin-top:10px; margin-bottom:8px">
+        <div class="left">
+          <label style="margin:0">Descripción</label>
+          {% if globals.links_section_desc %}<span class="pillGlobal">Global</span>{% endif %}
+        </div>
+        <label class="switchLabel">
+          <span>Usar en todas mis tarjetas</span>
+          <span class="switch">
+            <input
+              type="checkbox"
+              {% if globals.links_section_desc %}checked{% endif %}
+              hx-post="{% url 'vcards:set_global' %}"
+              hx-vals='{"field":"links_section_desc","enabled":this.checked}'
+              hx-trigger="change" />
+            <span class="switchTrack"></span>
+            <span class="switchDot"></span>
+          </span>
+        </label>
+      </div>
+
+      <textarea
+        class="input"
+        name="links_section_desc"
+        rows="4"
+        placeholder="Descripción"
+        hx-post="{% url 'vcards:preview' %}"
+        hx-trigger="keyup changed delay:300ms"
+        hx-target="#preview"
+        hx-include="#editorForm"></textarea>
+    </div> {# /links-card #}
+
+    {% comment %}
+    ===== LISTA DE ENLACES =====
+    - Arranca con un item por defecto.
+    - Nuevos items se insertan aquí por JS.
+    {% endcomment %}
+    <div class="links-list" id="linksList">
+
+      {% comment %} ===== ITEM POR DEFECTO (con toggle + eliminar en header) ===== {% endcomment %}
+      <div class="link-item" data-id="default-link">
+        <div class="itemHead">
+          <div class="left">
+            <div class="title">Enlace</div>
+            {% if globals.link_url %}<span class="pillGlobal">Global</span>{% endif %}
+          </div>
+          <div class="actions">
+            <label class="switchLabel">
+              <span>Usar en todas mis tarjetas</span>
+              <span class="switch">
+                <input
+                  type="checkbox"
+                  {% if globals.link_url %}checked{% endif %}
+                  hx-post="{% url 'vcards:set_global' %}"
+                  hx-vals='{"field":"link_url","enabled":this.checked}'
+                  hx-trigger="change" />
+                <span class="switchTrack"></span>
+                <span class="switchDot"></span>
+              </span>
+            </label>
+            <button type="button" class="link-del link-del--inline" title="Eliminar">🗑️</button>
+          </div>
+        </div>
+
+        <label>URL</label>
+        <input
+          class="input"
+          name="link_url[]"
+          placeholder="https://www.mycoolbrand.com"
+          hx-post="{% url 'vcards:preview' %}"
+          hx-trigger="keyup changed delay:300ms"
+          hx-target="#preview"
+          hx-include="#editorForm" />
+
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label>Título</label>
+            <input
+              class="input"
+              name="link_title[]"
+              placeholder="Título"
+              hx-post="{% url 'vcards:preview' %}"
+              hx-trigger="keyup changed delay:300ms"
+              hx-target="#preview"
+              hx-include="#editorForm" />
+          </div>
+          <div>
+            <label>Subtítulo</label>
+            <input
+              class="input"
+              name="link_subtitle[]"
+              placeholder="Subtítulo"
+              hx-post="{% url 'vcards:preview' %}"
+              hx-trigger="keyup changed delay:300ms"
+              hx-target="#preview"
+              hx-include="#editorForm" />
+          </div>
+        </div>
+
+        {% comment %} Tipo del enlace (útil para renderizado posterior) {% endcomment %}
+        <input type="hidden" name="link_type[]" value="web" />
+      </div> {# /.link-item #}
+
+    </div> {# /links-list #}
+
+    {% comment %}
+    ===== MENÚ +AGREGAR ENLACE =====
+    - Botón visible.
+    - Menú con opciones (web/whatsapp/youtube).
+    - Al elegir una opción se clona el template y se inserta un nuevo .link-item.
+    {% endcomment %}
+    <div class="add-row" style="margin-top:14px">
+      <div style="margin-top:14px">
+  <button type="button" class="add-link-btn" id="addLinkBtn">+ Agregar enlace</button>
+</div>
+
+    </div>
+
+    {% comment %} TEMPLATE que clona JS para nuevos items {% endcomment %}
+    <template id="linkItemTemplate">
+      <div class="link-item" data-id="">
+        <div class="itemHead">
+          <div class="left">
+            <div class="title">Enlace</div>
+            {% if globals.link_url %}<span class="pillGlobal">Global</span>{% endif %}
+          </div>
+          <div class="actions">
+            <label class="switchLabel">
+              <span>Usar en todas mis tarjetas</span>
+              <span class="switch">
+                <input
+                  type="checkbox"
+                  {% if globals.link_url %}checked{% endif %}
+                  hx-post="{% url 'vcards:set_global' %}"
+                  hx-vals='{"field":"link_url","enabled":this.checked}'
+                  hx-trigger="change" />
+                <span class="switchTrack"></span>
+                <span class="switchDot"></span>
+              </span>
+            </label>
+            <button type="button" class="link-del link-del--inline" title="Eliminar">🗑️</button>
+          </div>
+        </div>
+
+        <label>URL</label>
+        <input
+          class="input"
+          name="link_url[]"
+          placeholder="https://www.mycoolbrand.com"
+          hx-post="{% url 'vcards:preview' %}"
+          hx-trigger="keyup changed delay:300ms"
+          hx-target="#preview"
+          hx-include="#editorForm" />
+
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label>Título</label>
+            <input
+              class="input"
+              name="link_title[]"
+              placeholder="Título"
+              hx-post="{% url 'vcards:preview' %}"
+              hx-trigger="keyup changed delay:300ms"
+              hx-target="#preview"
+              hx-include="#editorForm" />
+          </div>
+          <div>
+            <label>Subtítulo</label>
+            <input
+              class="input"
+              name="link_subtitle[]"
+              placeholder="Subtítulo"
+              hx-post="{% url 'vcards:preview' %}"
+              hx-trigger="keyup changed delay:300ms"
+              hx-target="#preview"
+              hx-include="#editorForm" />
+          </div>
+        </div>
+
+        <input type="hidden" name="link_type[]" value="web" />
+      </div>
+    </template>
+
+  </div> {# /acc-links-body #}
+</div> {# /acc-links #}
+
+
+        </div>
+        <!-- /left -->
+
+        <!-- Columna derecha: PREVIEW -->
+        <div class="right">
+          <!-- Barra de acciones (sticky) -->
+          <div class="previewDock">
+            <div class="btnGroup">
+              {% comment %}
+              <button
+                type="button"
+                class="btnIcon"
+                title="Copiar enlace"
+                data-copy="https://linko.page/rngzvhm1a4wb"
+              >
+                {% endcomment %}
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M9 9h8a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H9a2 2 0 0 1-2-2v-8a2 2 0 0 1 2-2Z"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                  />
+                  <path
+                    d="M7 15H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h7a2 2 0 0 1 2 2v1"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                  />
+                </svg>
+              </button>
+              {% comment %}
+              <a
+                class="btnIcon"
+                title="Abrir enlace"
+                href="https://linko.page/rngzvhm1a4wb"
+                target="_blank"
+                rel="noopener"
+              >
+                {% endcomment %}
+                <svg
+                  width="18"
+                  height="18"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  aria-hidden="true"
+                >
+                  <path
+                    d="M14 5h5v5"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                  <path
+                    d="M10 14 19 5"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                  />
+                  <path
+                    d="M19 14v5H5V5h5"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                    stroke-linejoin="round"
+                  />
+                </svg>
+              </a>
+              <button type="button" class="btnIcon" title="Vista previa">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7S2 12 2 12Z"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                  />
+                  <circle
+                    cx="12"
+                    cy="12"
+                    r="3.2"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                  />
+                </svg>
+              </button>
+              <button type="button" class="btnIcon" title="Código QR">
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
+                  <path
+                    d="M3 3h6v6H3V3Zm12 0h6v6h-6V3ZM3 15h6v6H3v-6Z"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                  />
+                  <path
+                    d="M15 15h2m2 0h2m-6 2h2m0 2h2m-6-6h2"
+                    stroke="currentColor"
+                    stroke-width="1.6"
+                    stroke-linecap="round"
+                  />
+                </svg>
+              </button>
+            </div>
+            <button class="btnPrimary" id="saveBtnRight">Guardar</button>
+          </div>
+
+          <!-- Teléfono (sticky debajo de la barra) -->
+          <div class="phoneWrap">
+            <div class="phone">
+              <div class="screen" id="preview">Cargando vista previa…</div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <!-- /shell -->
+    </div>
+    <!-- /wrap -->
+  </main>
+</div>
+
+
+<template id="tpl-contact-email">
+  <div class="contact-item" data-type="email">
+    <div class="badge-del" title="Eliminar" data-del>🗑️</div>
+
+    <div class="fieldRow" style="margin-top:0">
+      <div class="left">
+        <div class="contact-title">Correo</div>
+        {% if globals.contact_email %}<span class="pillGlobal">Global</span>{% endif %}
+      </div>
+      <label class="switchLabel">
+        <span>Usar en todas mis tarjetas</span>
+        <span class="switch">
+          <input
+            type="checkbox"
+            {% if globals.contact_email %}checked{% endif %}
+            hx-post="{% url 'vcards:set_global' %}"
+            hx-vals='js:{"field":"contact_email","enabled":this.checked}'
+            hx-trigger="change">
+          <span class="switchTrack"></span>
+          <span class="switchDot"></span>
+        </span>
+      </label>
+    </div>
+
+    <div class="contact-grid">
+      <div>
+        <label>Etiqueta</label>
+        <input
+          class="input"
+          name="contact_label[]"
+          placeholder="Trabajo / Personal"
+          hx-post="{% url 'vcards:preview' %}"
+          hx-trigger="keyup changed delay:250ms"
+          hx-target="#preview"
+          hx-include="#editorForm"
+        />
+      </div>
+      <div>
+        <label>Correo</label>
+        <input
+          class="input"
+          name="contact_value[]"
+          placeholder="nombre@empresa.com"
+          hx-post="{% url 'vcards:preview' %}"
+          hx-trigger="keyup changed delay:250ms"
+          hx-target="#preview"
+          hx-include="#editorForm"
+        />
+      </div>
+    </div>
+    <input type="hidden" name="contact_type[]" value="email">
+  </div>
+</template>
+
+<template id="tpl-contact-number">
+  <div class="contact-item" data-type="number">
+    <div class="badge-del" title="Eliminar" data-del>🗑️</div>
+
+    <div class="fieldRow" style="margin-top:0">
+      <div class="left">
+        <div class="contact-title">Teléfono</div>
+        {% if globals.contact_number %}<span class="pillGlobal">Global</span>{% endif %}
+      </div>
+      <label class="switchLabel">
+        <span>Usar en todas mis tarjetas</span>
+        <span class="switch">
+          <input
+            type="checkbox"
+            {% if globals.contact_number %}checked{% endif %}
+            hx-post="{% url 'vcards:set_global' %}"
+            hx-vals='js:{"field":"contact_number","enabled":this.checked}'
+            hx-trigger="change">
+          <span class="switchTrack"></span>
+          <span class="switchDot"></span>
+        </span>
+      </label>
+    </div>
+
+    <div class="contact-grid">
+      <div>
+        <label>Etiqueta</label>
+        <input class="input" name="contact_label[]"
+               placeholder="Etiqueta"
+               hx-post="{% url 'vcards:preview' %}"
+               hx-trigger="keyup changed delay:250ms"
+               hx-target="#preview" hx-include="#editorForm">
+      </div>
+      <div>
+        <label>Número</label>
+        <input class="input" name="contact_value[]"
+               placeholder="+52 55 1234 5678"
+               hx-post="{% url 'vcards:preview' %}"
+               hx-trigger="keyup changed delay:250ms"
+               hx-target="#preview" hx-include="#editorForm">
+      </div>
+    </div>
+    <input type="hidden" name="contact_type[]" value="number">
+  </div>
+</template>
+
+<template id="tpl-contact-address">
+  <div class="contact-item" data-type="address">
+    <div class="badge-del" title="Eliminar" data-del>🗑️</div>
+
+    <div class="fieldRow" style="margin-top:0">
+      <div class="left">
+        <div class="contact-title">Dirección</div>
+        {% if globals.contact_address %}<span class="pillGlobal">Global</span>{% endif %}
+      </div>
+      <label class="switchLabel">
+        <span>Usar en todas mis tarjetas</span>
+        <span class="switch">
+          <input
+            type="checkbox"
+            {% if globals.contact_address %}checked{% endif %}
+            hx-post="{% url 'vcards:set_global' %}"
+            hx-vals='js:{"field":"contact_address","enabled":this.checked}'
+            hx-trigger="change">
+          <span class="switchTrack"></span>
+          <span class="switchDot"></span>
+        </span>
+      </label>
+    </div>
+
+    <div class="contact-grid">
+      <div>
+        <label>Etiqueta</label>
+        <input class="input" name="contact_label[]"
+               placeholder="Oficina / Sucursal"
+               hx-post="{% url 'vcards:preview' %}"
+               hx-trigger="keyup changed delay:250ms"
+               hx-target="#preview" hx-include="#editorForm">
+      </div>
+      <div>
+        <label>Dirección</label>
+        <input class="input" name="contact_value[]"
+               placeholder="Calle 123, Ciudad, Estado"
+               hx-post="{% url 'vcards:preview' %}"
+               hx-trigger="keyup changed delay:250ms"
+               hx-target="#preview" hx-include="#editorForm">
+      </div>
+    </div>
+    <input type="hidden" name="contact_type[]" value="address">
+  </div>
+</template>
+
+{% endblock %}
+
+{# JS propio de esta página #}
+{% block scripts %}
+<script src="{% static 'dashboard/js/user_vcard_create.js' %}"></script>
+{% endblock %}

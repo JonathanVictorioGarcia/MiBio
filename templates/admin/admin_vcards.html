@@ -1,0 +1,25 @@
+{% extends "admin/_base.html" %}
+{% block title %}Tarjetas · Admin · MiBio{% endblock %}
+{% block page_title %}Tarjetas{% endblock %}
+{% block page_subtitle %}Moderación, estados y conteos{% endblock %}
+{% block content %}
+<div class="card p-4">
+  <div class="flex items-center gap-3 mb-4">
+    <input type="search" placeholder="Buscar tarjeta..." class="w-full md:w-80 px-3 py-2 rounded-lg bg-slate-900 ring-soft text-sm" />
+    <select class="px-3 py-2 rounded-lg bg-slate-900 ring-soft text-sm">
+      <option>Estado: Todas</option><option>Activas</option><option>Ocultas</option><option>Pendientes</option>
+    </select>
+  </div>
+  <div class="overflow-auto scrollbar-thin">
+    <table class="table-base min-w-[800px]">
+      <thead><tr><th>Usuario</th><th>URL</th><th>Estado</th><th>Vistas</th><th>Últ. actualización</th><th></th></tr></thead>
+      <tbody>
+        <tr class="hover:bg-white/5">
+          <td>Ejemplo Uno</td><td>/coco-playa</td><td><span class="badge">Activa</span></td><td>1,245</td><td>2025-10-10</td>
+          <td class="text-right"><a href="#" class="text-brand-500 hover:underline">Revisar</a></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

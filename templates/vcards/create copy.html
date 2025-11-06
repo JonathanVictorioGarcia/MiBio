@@ -1,0 +1,1290 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <title>Tarjetas de visita digitales — Editor</title>
+  <script src="https://unpkg.com/htmx.org@2.0.3"></script>
+  <style>
+  :root{
+  --bg:#0b1a3a; --panel:#f6f7fb; --card:#ffffff; --muted:#6b7280; --line:#e5e7eb;
+  --primary:#4f46e5; --primary-600:#4338ca; --ring:#c7d2fe; --ok:#10b981; --danger:#ef4444;
+  --radius:14px;
+}
+
+/* ====== LAYOUT BASE ====== */
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;color:#0f172a}
+.wrap{max-width:1200px;margin:36px auto;padding:0 16px}
+.frame{background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.06));border-radius:22px;padding:18px}
+
+/* 2 columnas: izquierda flexible y derecha tipo “móvil” */
+.shell{
+  background:var(--panel);
+  border-radius:16px;
+  display:grid;
+  grid-template-columns:minmax(620px,1fr) 390px; /* derecha fija */
+  gap:18px;
+  padding:18px;
+}
+.left{padding:8px}
+.right{padding:8px;position:relative}
+.sticky{position:sticky;top:12px}
+
+/* Responsive: apilar cuando no quepa */
+@media (max-width: 1200px){
+  .shell{grid-template-columns:1fr}
+  .right{order:2}
+  .left{order:1}
+}
+
+/* ====== ENCABEZADOS / CHIP ====== */
+.titlebar{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.titlebar h1{font-size:20px;margin:0;color:#0b1020}
+.steps{display:flex;gap:8px;margin-left:auto}
+.chip{display:flex;align-items:center;gap:8px;background:#eef2ff;border:1px solid #e0e7ff;border-radius:999px;padding:6px 10px;color:#312e81;font-weight:600;font-size:12px}
+.chip.gray{background:#f3f4f6;border-color:#e5e7eb;color:#374151}
+
+
+
+/* Barra superior con regresar + título centrado + guardar */
+.saveBar{
+  position: sticky; top:12px; z-index:20;
+  display:grid; grid-template-columns:auto 1fr auto; align-items:center;
+  gap:12px; padding:10px 12px; margin-bottom:12px;
+  border-radius:16px;
+  background:linear-gradient(180deg, rgba(255,255,255,.14), rgba(255,255,255,.06));
+}
+
+/* Título centrado visualmente */
+.bar-title{
+  margin:0; text-align:center;
+  font-size:18px; font-weight:800; color:#e5e7eb;
+}
+
+/* Botón regresar con estilo suave */
+.back-btn{ font-weight:700; color:#1e3a8a; background:#eef2ff; border-color:#e0e7ff }
+.back-btn:hover{ background:#e0e7ff }
+
+/* Ajustes responsive */
+@media (max-width:700px){
+  .bar-title{ font-size:16px }
+  .saveBar{ padding:8px 10px }
+}
+
+
+
+/* ====== TARJETA / CAMPOS ====== */
+.card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px}
+.card h3{margin:0 0 12px;font-size:14px;color:#111827;display:flex;align-items:center;gap:10px}
+.hint{color:var(--muted);font-size:12px;margin-top:6px}
+
+.input{width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:10px;outline:0;font-size:14px;background:#fff}
+.input:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--ring)}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+label{display:block;margin:8px 0 6px;font-weight:600;font-size:13px;color:#111827}
+
+.toolbar{display:flex;gap:10px;align-items:center}
+.btn{appearance:none;border:1px solid #d1d5db;background:#fff;border-radius:10px;padding:9px 12px;font-weight:600;cursor:pointer}
+.btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+.btn.primary:hover{background:var(--primary-600)}
+.btn.ghost{background:#f9fafb}
+.switch{position:relative;width:44px;height:24px;background:#e5e7eb;border-radius:999px;cursor:pointer;border:1px solid #d1d5db}
+.switch::after{content:"";position:absolute;top:2px;left:2px;width:18px;height:18px;background:#fff;border-radius:999px;transition:.2s}
+.switch.on{background:#d1fae5;border-color:#a7f3d0}
+.switch.on::after{left:22px}
+
+/* ====== SELECTOR DE PLANTILLA ====== */
+.templates{display:grid;grid-auto-flow:column;gap:12px;overflow-x:auto;padding-bottom:6px}
+.tpl{min-width:120px;background:#fff;border:2px solid transparent;border-radius:12px;padding:8px;box-shadow:0 1px 0 rgba(0,0,0,.06)}
+.tpl input{display:none}
+.tpl img{display:block;width:100%;height:76px;object-fit:cover;border-radius:10px;border:1px solid #e5e7eb}
+.tpl label,.tpl span{display:block;margin-top:6px;text-align:center;font-weight:600;font-size:12px}
+.tpl input:checked + img{outline:3px solid var(--primary);border-color:var(--primary)}
+
+.stack{display:flex;flex-direction:column;gap:18px}
+
+/* ====== PREVIEW / TELÉFONO ====== */
+.phoneDock{display:flex;justify-content:center}
+.phone{
+  width:360px;                 /* ancho de teléfono */
+  max-width:100%;
+  background:#0f172a;
+  border-radius:34px;
+  border:12px solid #0b1020;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.05), 0 8px 20px rgba(2,6,23,.35);
+  padding:10px;
+}
+.screen{
+  background:#111827;
+  border-radius:24px;
+  padding:14px;
+  color:#e5e7eb;
+  min-height:640px;            /* alto cómodo para vista */
+}
+.topbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
+.badge{background:#111827;border:1px solid #334155;border-radius:999px;padding:3px 8px;font-size:12px}
+.avatar{width:100%;height:140px;border-radius:14px;background:url('https://images.unsplash.com/photo-1502685104226-ee32379fefbe?q=80&w=1200&auto=format&fit=crop') center/cover no-repeat;margin-bottom:12px}
+.cardLite{background:#0b1220;border:1px solid #1f2937;border-radius:14px;padding:12px;margin-top:10px}
+.icbar{display:flex;gap:12px;margin:6px 0}
+.ic{width:34px;height:34px;border-radius:10px;background:#0b1220;border:1px solid #1f2937;display:grid;place-items:center;font-size:14px}
+.about{background:#f8fafc;color:#0f172a;border-radius:14px;padding:12px;margin-top:12px}
+.saveBox{position:sticky;top:12px;display:flex;justify-content:flex-end;margin-bottom:12px}
+
+/* ====== ACCORDIONS (ÚNICA DEFINICIÓN) ====== */
+.accordion{border:1px solid var(--line); border-radius:var(--radius); background:#fff; overflow:visible}
+.acc-head{
+  width:100%; display:flex; align-items:center; justify-content:space-between;
+  background:#eef2ff; padding:12px 16px; border:0; cursor:pointer; border-radius:var(--radius) var(--radius) 0 0
+}
+.acc-left{display:flex; align-items:center; gap:10px}
+.acc-grip{color:#64748b}
+.acc-title{color:#1e3a8a; font-weight:700}
+.acc-icon{width:28px;height:28px;border-radius:999px;background:#fff;border:1px solid #e5e7eb; display:grid;place-items:center;font-weight:800;color:#1e3a8a}
+.acc-body{padding:16px; display:none}
+
+/* encabezado reutilizable dentro de tarjetas */
+.section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.section-title{font-weight:800;color:#0b1020}
+.section-sub{font-size:12px;color:#6b7280;margin-top:2px}
+.section-actions{display:flex;gap:8px;align-items:center}
+
+/* ====== PROFILE (ACCORDION) ====== */
+.profile-acc .acc-body{padding:16px}
+
+/* Fila: avatar + banner + (opcional video si lo usas con el mismo patrón) */
+.profile-acc .assets-row{
+  display:flex; align-items:flex-start; gap:8px; margin-bottom:14px;
+}
+.profile-acc .asset-group{
+  display:grid; grid-template-columns:92px 92px; gap:16px; align-items:start;
+}
+.profile-acc .note{
+  grid-column:1 / -1; text-align:center; font-size:12px; color:#6b7280; margin-top:6px;
+}
+
+/* Tiles */
+.profile-acc .tile{
+  width:92px; height:92px; border-radius:12px; background:#fff;
+  border:1px solid #e5e7eb; box-shadow:0 1px 0 rgba(0,0,0,.03);
+  display:grid; place-items:center; overflow:hidden;
+}
+.profile-acc .tile:hover{background:#f8fafc}
+.profile-acc .tile-preview{width:100%;height:100%;object-fit:cover}
+.profile-acc .tile-empty{font-size:18px;color:#6b7280}
+
+/* Botón de subida */
+.profile-acc .tile-btn{
+  background:#f3f4f6; border:1px dashed #cbd5e1; cursor:pointer; display:grid; place-items:center;
+}
+.profile-acc .tile-btn:hover{background:#eef2ff}
+.profile-acc .tile-btn svg{width:24px;height:24px;opacity:.75}
+
+/* Proporciones informativas */
+.profile-acc .avatar-preview{aspect-ratio:4/5}
+.profile-acc .banner-preview{aspect-ratio:3/1}
+
+/* Campos del acordeón */
+.profile-acc .field{margin-bottom:14px}
+.profile-acc .field-label{
+  display:flex; gap:6px; align-items:center; margin:0 0 6px;
+  font-weight:600; font-size:13px; color:#111827
+}
+
+/* Ocultar file nativo */
+input[type="file"].hidden-file{display:none !important}
+
+/* Responsive de tiles */
+@media (max-width: 920px){
+  .profile-acc .assets-row{gap:28px}
+  .profile-acc .asset-group{grid-template-columns:84px 84px; gap:12px}
+  .profile-acc .tile{width:84px;height:84px}
+}
+@media (max-width: 640px){
+  .profile-acc .assets-row{flex-direction:column; gap:20px}
+  .profile-acc .asset-group{grid-template-columns:minmax(0,92px) minmax(0,92px)}
+}
+
+/* Acordeón cuando también es .card (Profile) */
+.accordion.card{
+  padding:0;                  /* quita el margen interno que encogía el header */
+}
+.accordion.card .acc-body{
+  padding:16px;               /* conservamos padding sólo en el cuerpo */
+}
+
+/* Título del acordeón consistente en todos */
+.acc-title{
+  font-size:16px;             /* mismo tamaño en todos los headers */
+  font-weight:700;
+}
+
+
+
+/* ====== Diseño ====== */
+/* ====== COLORS (ACCORDION) ====== */
+.colors-acc.accordion.card{ padding:0 }                 /* header a todo ancho */
+.colors-acc .acc-body{ padding:16px }
+
+/* fila de swatches */
+.color-swatches{display:flex; gap:14px; align-items:center; flex-wrap:wrap; margin-bottom:14px}
+.swatch{
+  width:54px; height:54px; border-radius:999px; position:relative; cursor:pointer;
+  box-shadow:inset 0 -12px 0 rgba(255,255,255,.65); border:2px solid #e5e7eb;
+}
+.swatch:after{ /* aro exterior al enfocar algún input objetivo */
+  content:""; position:absolute; inset:-6px; border-radius:999px; border:2px solid transparent;
+}
+.colors-acc .is-target .swatch:after{ border-color:#94a3ff }
+
+/* campo de color (picker + hex) */
+.color-field{display:flex; gap:10px; align-items:center}
+.color-picker{
+  width:38px; height:38px; border:1px solid #d1d5db; border-radius:10px; padding:0; background:#fff;
+}
+.hex{ flex:1 1 auto }
+
+/* títulos de columna */
+.colors-acc .label{display:block; margin:8px 0 6px; font-weight:600; font-size:13px; color:#111827}
+
+/* layout en 2 columnas como tus otros grupos */
+.colors-grid{display:grid; grid-template-columns:1fr 1fr; gap:12px}
+@media (max-width: 720px){
+  .colors-grid{ grid-template-columns:1fr }
+}
+
+/* ====== Diseño ====== */
+
+
+
+/* ====== CONTACT ====== */
+.contact-list{display:flex;flex-direction:column;gap:12px;margin-top:10px}
+.contact-item{background:#eef2ff;border:1px solid #e5e7eb;border-radius:12px;padding:14px;position:relative}
+.contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.contact-title{font-weight:700;margin:0 0 10px;color:#1e3a8a}
+.badge-del{position:absolute;right:10px;top:10px;width:30px;height:30px;border-radius:999px;background:#fff;border:1px solid #fecaca;color:#ef4444;display:grid;place-items:center;cursor:pointer;font-weight:800}
+.add-row{margin-top:12px}
+.menu{position:relative;display:inline-block}
+.btn-add{appearance:none;border:1px solid #93c5fd;background:#fff;color:#2563eb;font-weight:700;border-radius:10px;padding:8px 12px;cursor:pointer}
+.btn-add:hover{background:#eff6ff}
+.menu-list{position:absolute;left:0;top:42px;background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 12px 24px rgba(2,6,23,.15);padding:6px 0;min-width:180px;z-index:9999;display:none}
+.menu.open .menu-list{display:block}
+.menu-item{padding:8px 12px;cursor:pointer}
+.menu-item:hover{background:#f3f4f6}
+
+/* ====== BLOQUE IMÁGENES ====== */
+.view-types{display:flex;gap:12px;margin:6px 0 12px}
+.vt{flex:0 0 120px;position:relative}
+.vt input{display:none}
+.vt label{display:block;border:1.5px solid #e5e7eb;border-radius:12px;padding:10px;cursor:pointer;background:#fff}
+.vt .mock{height:44px;border:1px dashed #cbd5e1;border-radius:8px;background:#f8fafc;display:grid;place-items:center;font-size:12px;color:#64748b}
+.vt .name{display:block;text-align:center;margin-top:6px;font-weight:700;font-size:12px;color:#1e3a8a}
+.vt input:checked + label{outline:3px solid var(--ring);border-color:var(--primary)}
+.image-list{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+.image-item{position:relative;width:92px;height:92px;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;background:#f3f4f6}
+.image-item img{width:100%;height:100%;object-fit:cover;display:block}
+.image-del{position:absolute;right:-6px;top:-6px;width:28px;height:28px;border-radius:999px;background:#fff;border:1px solid #fecaca;color:#ef4444;display:grid;place-items:center;font-weight:800;cursor:pointer}
+.image-add{width:92px;height:92px;border:2px dashed #cbd5e1;border-radius:12px;display:grid;place-items:center;background:#fff;cursor:pointer}
+.image-add:hover{background:#f8fafc}
+.bg-row{display:flex;align-items:center;justify-content:space-between;border-top:1px solid #e5e7eb;margin-top:16px;padding-top:12px}
+
+/* ====== SOCIAL LINKS ====== */
+.social-list{display:flex;flex-direction:column;gap:12px;margin-top:10px}
+.social-item{background:#eef2ff;border:1px solid #e5e7eb;border-radius:12px;padding:14px;position:relative}
+.social-grid{display:grid;grid-template-columns:220px 1fr;gap:12px}
+.select{appearance:none;background:#fff;border:1px solid #d1d5db;border-radius:10px;padding:10px 12px}
+.select-wrap{position:relative}
+.select-wrap:after{content:"▾";position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:#6b7280}
+
+/* ====== LINKS ====== */
+.links-card{background:#f3f4fb;border:1px solid #e8ebf5;border-radius:12px;padding:16px}
+.links-list{display:flex;flex-direction:column;gap:12px;margin-top:14px}
+.link-item{background:#f6f7fd;border:1px solid #e8ebf5;border-radius:12px;padding:14px;position:relative}
+.link-item .title{font-weight:700;color:#3b4a8a;margin:0 0 10px}
+.link-del{position:absolute;right:10px;top:10px;width:32px;height:32px;border-radius:999px;background:#fff;border:1px solid #fecaca;color:#ef4444;display:grid;place-items:center;cursor:pointer;font-weight:800}
+.add-link-btn{appearance:none;border:1px solid #94a3ff;background:#fff;color:#4f46e5;font-weight:700;border-radius:10px;padding:10px 14px;cursor:pointer}
+.add-link-btn:hover{background:#eef2ff}
+
+</style>
+
+</head>
+<body>
+  <div class="wrap">
+    <div class="frame">
+      <!-- Barra superior -->
+<div class="saveBar">
+  <a class="btn ghost back-btn" href="http://127.0.0.1:8000/">← Regresar</a>
+  <h1 class="bar-title">Tarjetas de visita digitales</h1>
+  <button class="btn primary" id="saveBtn">Guardar</button>
+</div>
+
+      <div class="shell">
+        <!-- LEFT -->
+        <div class="left">
+          <!-- <div class="titlebar">
+            <h1>Tarjetas de visita digitales</h1>
+            <div class="steps">
+              <span class="chip">1 Contenido</span>
+              <span class="chip gray">2 Diseño / Configuración</span>
+              <span class="chip gray">3 Código QR</span>
+            </div>
+          </div> -->
+
+          <div class="stack">
+            <!-- URL -->
+            <div class="card">
+              <h3>URL de tu página</h3>
+              <div class="row">
+                <input class="input" name="slug_disabled" value="t1g007xjwuj" disabled />
+                <button class="btn ghost" style="white-space:nowrap">Copiar</button>
+              </div>
+              <p class="hint">Una vez guardado, no se puede cambiar más tarde · mínimo 5 caracteres.</p>
+            </div>
+
+            <!-- SELECTOR DE PLANTILLA -->
+            <div class="card">
+              <h3>Página Plantilla <span class="hint" style="margin-left:6px">(haz clic para elegir)</span></h3>
+              <div class="templates" id="templateRadios">
+                <label class="tpl">
+                  <input
+                    type="radio" name="template" value="buro" checked
+                    hx-post="{% url 'vcards:preview' %}""
+                    hx-trigger="change"
+                    hx-target="#preview"
+                    hx-include="#editorForm, #templateRadios input[name='template']:checked"
+                  />
+                  <img src="https://images.unsplash.com/photo-1557800636-894a64c1696f?q=80&w=1400&auto=format&fit=crop" alt="Buro">
+                  <span>Buro</span>
+                </label>
+
+                <label class="tpl">
+                  <input
+                    type="radio" name="template" value="dual"
+                    hx-post="{% url 'vcards:preview' %}""
+                    hx-trigger="change"
+                    hx-target="#preview"
+                    hx-include="#editorForm, #templateRadios input[name='template']:checked"
+                  />
+                  <img src="https://images.unsplash.com/photo-1544717305-2782549b5136?q=80&w=1400&auto=format&fit=crop" alt="Dual">
+                  <span>Dual</span>
+                </label>
+              </div>
+            </div>
+
+<!-- PERFIL -->
+<form id="editorForm" class="card accordion profile-acc"
+      hx-post="{% url 'vcards:preview' %}""
+      hx-trigger="load, keyup changed delay:250ms, change"
+      hx-target="#preview"
+      hx-swap="innerHTML"
+      hx-include="#templateRadios input[name='template']:checked">
+       {% csrf_token %}
+
+  <input type="hidden" name="template" id="templateField" value="buro">
+  {% csrf_token %}
+
+  <!-- MISMO HEADER QUE LOS DEMÁS ACORDEONES -->
+  <button type="button" class="acc-head" aria-expanded="true">
+    <div class="acc-left">
+      <span class="acc-grip">⋮⋮</span>
+      <span class="acc-title">Perfil</span>
+    </div>
+    <span class="acc-icon">−</span>
+  </button>
+
+  <div class="acc-body" style="display:block">
+    <div class="assets-row">
+
+      <!-- FOTO -->
+      <div class="asset-group">
+        <div id="photoTile" class="tile avatar-preview" aria-label="Foto de perfil">
+          {% if photo %}<img src="{{ photo }}" alt="" class="tile-preview">{% else %}<div class="tile-empty">🖼️</div>{% endif %}
+        </div>
+        <form class="asset-uploader" hx-post="/vcards/upload-image/?field=photo"
+              hx-encoding="multipart/form-data" hx-target="#photoTile" hx-swap="outerHTML">
+          {% csrf_token %}
+          <input type="file" name="image" accept="image/*" class="hidden-file">
+          <div class="tile tile-btn" data-upload-btn title="Subir foto">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M12 16V4m0 0 4 4m-4-4-4 4M4 16v4h16v-4"
+                    stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </form>
+        <div class="note">(500×625 px, 4:5)</div>
+        <input type="hidden" name="photo" value="{{ photo|default:'' }}">
+      </div>
+
+      <!-- BANNER -->
+      <div class="asset-group">
+        <div id="bannerTile" class="tile banner-preview" aria-label="Banner">
+          {% if banner %}<img src="{{ banner }}" alt="" class="tile-preview">{% else %}<div class="tile-empty">T</div>{% endif %}
+        </div>
+        <form class="asset-uploader" hx-post="/vcards/upload-image/?field=banner"
+              hx-encoding="multipart/form-data" hx-target="#bannerTile" hx-swap="outerHTML">
+          {% csrf_token %}
+          <input type="file" name="image" accept="image/*" class="hidden-file">
+          <div class="tile tile-btn" data-upload-btn title="Subir banner">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M12 16V4m0 0 4 4m-4-4-4 4M4 16v4h16v-4"
+                    stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </form>
+        <div class="note">(160×80 px, 3:1)</div>
+        <input type="hidden" name="banner" value="{{ banner|default:'' }}">
+      </div>
+
+      <!-- VIDEO -->
+      <div class="asset-group">
+        <div id="videoTile" class="tile" aria-label="Video">
+          {% if video_url %}
+            <video class="tile-preview" src="{{ video_url }}" muted loop playsinline></video>
+          {% else %}
+            <div class="tile-empty">▶︎</div>
+          {% endif %}
+        </div>
+        <form class="asset-uploader" hx-post="/vcards/upload-video/?field=video"
+              hx-encoding="multipart/form-data" hx-target="#videoTile" hx-swap="outerHTML">
+          {% csrf_token %}
+          <input type="file" name="video" accept="video/*" class="hidden-file">
+          <div class="tile tile-btn" data-upload-btn title="Subir video">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M12 16V4m0 0 4 4m-4-4-4 4M4 16v4h16v-4"
+                    stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </div>
+        </form>
+        <div class="note">Video cuadrado (se recorta en la previsualización)</div>
+        <input type="hidden" name="video_url" value="{{ video_url|default:'' }}">
+      </div>
+
+    </div>
+
+    <!-- Campos de texto -->
+    <div class="field">
+      <label class="field-label">Nombre</label>
+      <input class="input" name="full_name" placeholder="Nombre"
+             hx-post="{% url 'vcards:preview' %}"" hx-trigger="keyup changed delay:300ms"
+             hx-target="#preview" hx-include="#editorForm">
+    </div>
+
+    <div class="field">
+      <label class="field-label">Profesión</label>
+      <input class="input" name="job_title" placeholder="Profesión"
+             hx-post="{% url 'vcards:preview' %}"" hx-trigger="keyup changed delay:300ms"
+             hx-target="#preview" hx-include="#editorForm">
+    </div>
+  </div>
+</form>
+
+<!-- DISEÑO -->
+<form id="colorsForm" class="card accordion colors-acc"
+      hx-post="{% url 'vcards:preview' %}""
+      hx-trigger="load, change, keyup changed delay:250ms"
+      hx-target="#preview"
+      hx-swap="innerHTML"
+      hx-include="#templateRadios input[name='template']:checked, #colorsForm">
+  {% csrf_token %}
+  <input type="hidden" name="template" value="buro">
+
+  <button type="button" class="acc-head" aria-expanded="true">
+    <div class="acc-left"><span class="acc-grip">⋮⋮</span><span class="acc-title">Diseño</span></div>
+    <span class="acc-icon">−</span>
+  </button>
+
+  <div class="acc-body" style="display:block">
+    <!-- Paleta rápida -->
+    <div class="color-swatches" id="swatchRow" aria-label="Colores rápidos">
+      <div class="swatch" style="background:#517AFA" data-color="#517AFA" title="#517AFA"></div>
+      <div class="swatch" style="background:#2B4C9B" data-color="#2B4C9B" title="#2B4C9B"></div>
+      <div class="swatch" style="background:#D6285F" data-color="#D6285F" title="#D6285F"></div>
+      <div class="swatch" style="background:#FF9F1C" data-color="#FF9F1C" title="#FF9F1C"></div>
+      <div class="swatch" style="background:#7B5A2E" data-color="#7B5A2E" title="#7B5A2E"></div>
+      <div class="swatch" style="background:#2995A0" data-color="#2995A0" title="#2995A0"></div>
+      <div class="swatch" style="background:#0E3B73" data-color="#0E3B73" title="#0E3B73"></div>
+      <div class="swatch" style="background:#5866FF" data-color="#5866FF" title="#5866FF"></div>
+    </div>
+
+    <!-- Campos en 2 columnas -->
+    <div class="colors-grid" id="colorsGrid">
+      <!-- Primario -->
+      <div>
+        <label class="label">Color primario</label>
+        <div class="color-field is-target" data-field="theme_primary">
+          <input class="color-picker" type="color" name="theme_primary_picker" value="{{ theme_primary|default:'#517AFA' }}">
+          <input class="input hex" type="text" name="theme_primary" value="{{ theme_primary|default:'#517AFA' }}" placeholder="#517AFA">
+        </div>
+      </div>
+
+      <!-- Secundario -->
+      <div>
+        <label class="label">Color secundario</label>
+        <div class="color-field" data-field="theme_secondary">
+          <input class="color-picker" type="color" name="theme_secondary_picker" value="{{ theme_secondary|default:'#C5FEFF' }}">
+          <input class="input hex" type="text" name="theme_secondary" value="{{ theme_secondary|default:'#C5FEFF' }}" placeholder="#C5FEFF">
+        </div>
+      </div>
+
+      <!-- Textos del bloque Perfil -->
+      <div>
+        <label class="label">Texto primario (Perfil)</label>
+        <div class="color-field" data-field="profile_text_primary">
+          <input class="color-picker" type="color" name="profile_text_primary_picker" value="{{ profile_text_primary|default:'#061244' }}">
+          <input class="input hex" type="text" name="profile_text_primary" value="{{ profile_text_primary|default:'#061244' }}" placeholder="#061244">
+        </div>
+      </div>
+
+      <div>
+        <label class="label">Texto secundario (Perfil)</label>
+        <div class="color-field" data-field="profile_text_secondary">
+          <input class="color-picker" type="color" name="profile_text_secondary_picker" value="{{ profile_text_secondary|default:'#76839B' }}">
+          <input class="input hex" type="text" name="profile_text_secondary" value="{{ profile_text_secondary|default:'#76839B' }}" placeholder="#76839B">
+        </div>
+      </div>
+
+      <!-- Textos generales -->
+      <div>
+        <label class="label">Texto primario (General)</label>
+        <div class="color-field" data-field="text_primary">
+          <input class="color-picker" type="color" name="text_primary_picker" value="{{ text_primary|default:'#061244' }}">
+          <input class="input hex" type="text" name="text_primary" value="{{ text_primary|default:'#061244' }}" placeholder="#061244">
+        </div>
+      </div>
+
+      <div>
+        <label class="label">Texto secundario (General)</label>
+        <div class="color-field" data-field="text_secondary">
+          <input class="color-picker" type="color" name="text_secondary_picker" value="{{ text_secondary|default:'#76839B' }}">
+          <input class="input hex" type="text" name="text_secondary" value="{{ text_secondary|default:'#76839B' }}" placeholder="#76839B">
+        </div>
+      </div>
+
+      <!-- Fondos -->
+      <div>
+        <label class="label">Fondo de tarjeta</label>
+        <div class="color-field" data-field="card_bg">
+          <input class="color-picker" type="color" name="card_bg_picker" value="{{ card_bg|default:'#0D1626' }}">
+          <input class="input hex" type="text" name="card_bg" value="{{ card_bg|default:'#0D1626' }}" placeholder="#0D1626">
+        </div>
+      </div>
+
+      <div>
+        <label class="label">Fondo de contenedores/bloques</label>
+        <div class="color-field" data-field="block_bg">
+          <input class="color-picker" type="color" name="block_bg_picker" value="{{ block_bg|default:'#111827' }}">
+          <input class="input hex" type="text" name="block_bg" value="{{ block_bg|default:'#111827' }}" placeholder="#111827">
+        </div>
+      </div>
+    </div>
+  </div>
+</form>
+
+<!-- ACERCA DE -->
+<div class="accordion" id="acc-heading">
+  <button type="button" class="acc-head" aria-controls="acc-heading-body" aria-expanded="false">
+    <div class="acc-left"><span class="acc-grip">⋮⋮</span><span class="acc-title">Acerca de</span></div>
+    <span class="acc-icon">+</span>
+  </button>
+  <div class="acc-body" id="acc-heading-body">
+    <label>Título</label>
+    <input class="input" name="section_title" placeholder="Acerca de"
+           hx-post="{% url 'vcards:preview' %}"" hx-trigger="keyup changed delay:250ms"
+           hx-target="#preview" hx-include="#editorForm" />
+    <label style="margin-top:12px">Descripción</label>
+    <textarea class="input" name="section_desc" rows="4" placeholder="Descripción"
+              hx-post="{% url 'vcards:preview' %}"" hx-trigger="keyup changed delay:250ms"
+              hx-target="#preview" hx-include="#editorForm"></textarea>
+  </div>
+</div>
+
+<!-- CONTACTOS -->
+<div class="accordion" id="acc-contact">
+  <button type="button" class="acc-head" aria-controls="acc-contact-body" aria-expanded="false">
+    <div class="acc-left"><span class="acc-grip">⋮⋮</span><span class="acc-title">Contactos</span></div>
+    <span class="acc-icon">+</span>
+  </button>
+  <div class="acc-body" id="acc-contact-body">
+    <label>Título</label>
+    <input class="input" name="contact_section_title" placeholder="Contactos"
+           hx-post="{% url 'vcards:preview' %}"" hx-trigger="keyup changed delay:250ms"
+           hx-target="#preview" hx-include="#editorForm" />
+
+    <div class="contact-list" id="contactList">
+      <!-- Bloque Teléfono por defecto -->
+      <div class="contact-item" data-id="default-number">
+        <div class="badge-del" title="Eliminar">🗑️</div>
+        <div class="contact-title">Teléfono</div>
+        <div class="contact-grid">
+          <div>
+            <label>Etiqueta</label>
+            <input class="input" name="contact_label[]"
+                   placeholder="Etiqueta"
+                   hx-post="{% url 'vcards:preview' %}"" hx-trigger="keyup changed delay:250ms"
+                   hx-target="#preview" hx-include="#editorForm">
+          </div>
+          <div>
+            <label>Número</label>
+            <input class="input" name="contact_value[]"
+                   placeholder="+52 55 1234 5678"
+                   hx-post="{% url 'vcards:preview' %}"" hx-trigger="keyup changed delay:250ms"
+                   hx-target="#preview" hx-include="#editorForm">
+          </div>
+        </div>
+        <input type="hidden" name="contact_type[]" value="number"
+               hx-post="{% url 'vcards:preview' %}"" hx-trigger="change"
+               hx-target="#preview" hx-include="#editorForm">
+      </div>
+    </div>
+
+    <div class="add-row">
+      <div class="menu" id="contactMenu">
+        <button type="button" class="btn-add">+ Agregar</button>
+        <div class="menu-list">
+          <div class="menu-item" data-type="email">Correo electrónico</div>
+          <div class="menu-item" data-type="number">Número</div>
+          <div class="menu-item" data-type="address">Dirección</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- GALERÍA -->
+<div class="accordion" id="acc-images">
+  <button type="button" class="acc-head" aria-controls="acc-images-body" aria-expanded="false">
+    <div class="acc-left"><span class="acc-grip">⋮⋮</span><span class="acc-title">Galería</span></div>
+    <span class="acc-icon">+</span>
+  </button>
+
+  <div class="acc-body" id="acc-images-body">
+    <label>Tipo de vista</label>
+    <div class="view-types" id="viewTypes">
+      <div class="vt">
+        <input type="radio" id="vt-list" name="images_view" value="list" checked>
+        <label for="vt-list"><div class="mock">Lista</div><span class="name">Lista</span></label>
+      </div>
+      <div class="vt">
+        <input type="radio" id="vt-grid1" name="images_view" value="grid1">
+        <label for="vt-grid1"><div class="mock">Cuadrícula 1</div><span class="name">Grid 1</span></label>
+      </div>
+      <div class="vt">
+        <input type="radio" id="vt-grid2" name="images_view" value="grid2">
+        <label for="vt-grid2"><div class="mock">Cuadrícula 2</div><span class="name">Grid 2</span></label>
+      </div>
+    </div>
+
+    <label>Fotos <span class="hint">(600×600 px, 1:1 o 4:5)</span></label>
+    <div class="image-list" id="imageList">
+      <!-- thumbnails llegan por HTMX -->
+      <form id="imageUploadForm"
+            hx-post="/vcards/upload-image/"
+            hx-encoding="multipart/form-data"
+            hx-target="#imageList"
+            hx-swap="beforeend"
+            hx-on="htmx:afterRequest:
+              const f=document.querySelector('#editorForm');
+              const fd=new FormData(f);
+              document.querySelectorAll('#imageList input[name=&quot;images[]&quot;]').forEach(i=>fd.append('images[]', i.value));
+              const vr=document.querySelector('input[name=&quot;images_view&quot;]:checked'); if(vr) fd.set('images_view', vr.value);
+              const bgv=document.getElementById('imagesBgValue'); if(bgv) fd.set('images_card_bg', bgv.value);
+              htmx.ajax('POST','/vcards/preview/',{target:'#preview',values:fd});"
+            style="display:inline-block">
+        {% csrf_token %}
+        <input type="file" name="image" id="imageFile" accept="image/*" style="display:none">
+        <button type="button" class="image-add" onclick="document.getElementById('imageFile').click();" title="Subir imagen">⬆︎</button>
+      </form>
+    </div>
+
+    <div class="bg-row">
+      <div>
+        <strong>Fondo de tarjeta</strong>
+        <div class="hint">Activa un fondo oscuro para el bloque de imágenes en la previsualización</div>
+      </div>
+      <input type="checkbox" id="imagesBgToggle" aria-label="Activar fondo">
+      <input type="hidden" name="images_card_bg" id="imagesBgValue" value="0">
+    </div>
+  </div>
+</div>
+
+<!-- REDES SOCIALES -->
+<div class="accordion" id="acc-social">
+  <button type="button" class="acc-head" aria-controls="acc-social-body" aria-expanded="false">
+    <div class="acc-left"><span class="acc-grip">⋮⋮</span><span class="acc-title">Redes sociales</span></div>
+    <span class="acc-icon">+</span>
+  </button>
+
+  <div class="acc-body" id="acc-social-body">
+    <label>Título</label>
+    <input class="input" name="social_section_title" placeholder="Links de redes sociales"
+           hx-post="{% url 'vcards:preview' %}"" hx-trigger="keyup changed delay:250ms"
+           hx-target="#preview" hx-include="#editorForm" />
+
+    <div class="social-list" id="socialList">
+      <!-- Item por defecto -->
+      <div class="social-item" data-id="default-social">
+        <div class="badge-del" title="Eliminar">🗑️</div>
+        <div class="social-grid">
+          <div class="select-wrap">
+            <select class="select" name="social_network[]"
+                    hx-post="{% url 'vcards:preview' %}"" hx-trigger="change"
+                    hx-target="#preview" hx-include="#editorForm">
+              <option>Facebook</option>
+              <option>Instagram</option>
+              <option>LinkedIn</option>
+              <option value="X">X (Twitter)</option>
+              <option>TikTok</option>
+              <option>YouTube</option>
+              <option>WhatsApp</option>
+              <option>Telegram</option>
+              <option>Snapchat</option>
+              <option>Pinterest</option>
+              <option>Reddit</option>
+              <option>GitHub</option>
+              <option>Twitch</option>
+              <option>Discord</option>
+              <option>Behance</option>
+              <option>Dribbble</option>
+              <option>Medium</option>
+              <option>Threads</option>
+              <option>Bluesky</option>
+              <option>Personalizado</option>
+            </select>
+          </div>
+          <input class="input" name="social_url[]" placeholder="URL"
+                 hx-post="{% url 'vcards:preview' %}"" hx-trigger="keyup changed delay:300ms"
+                 hx-target="#preview" hx-include="#editorForm">
+        </div>
+
+        <label style="margin-top:12px">Título</label>
+        <div class="social-grid" style="grid-template-columns:1fr 1fr">
+          <input class="input" name="social_label[]" placeholder="Facebook"
+                 hx-post="{% url 'vcards:preview' %}"" hx-trigger="keyup changed delay:300ms"
+                 hx-target="#preview" hx-include="#editorForm">
+          <input class="input" name="social_desc[]" placeholder="Síguenos en Facebook"
+                 hx-post="{% url 'vcards:preview' %}"" hx-trigger="keyup changed delay:300ms"
+                 hx-target="#preview" hx-include="#editorForm">
+        </div>
+      </div>
+    </div>
+
+    <div class="add-row" style="margin-top:12px">
+      <button type="button" class="btn-add" id="addSocialBtn">+ Agregar link</button>
+    </div>
+  </div>
+</div>
+
+<!-- LINKS -->
+<div class="accordion" id="acc-links">
+  <button type="button" class="acc-head" aria-controls="acc-links-body" aria-expanded="false">
+    <div class="acc-left"><span class="acc-grip">⋮⋮</span><span class="acc-title">Enlaces</span></div>
+    <span class="acc-icon">+</span>
+  </button>
+
+  <div class="acc-body" id="acc-links-body">
+    <div class="links-card">
+      <label>Título</label>
+      <input class="input" name="links_section_title" placeholder="Enlaces web"
+             hx-post="{% url 'vcards:preview' %}"" hx-trigger="keyup changed delay:300ms"
+             hx-target="#preview" hx-include="#editorForm" />
+
+      <label style="margin-top:10px">Descripción</label>
+      <textarea class="input" name="links_section_desc" rows="4" placeholder="Descripción"
+                hx-post="{% url 'vcards:preview' %}"" hx-trigger="keyup changed delay:300ms"
+                hx-target="#preview" hx-include="#editorForm"></textarea>
+    </div>
+
+    <div class="links-list" id="linksList">
+      <!-- Ítem por defecto -->
+      <div class="link-item" data-id="default-link">
+        <div class="link-del" title="Eliminar">🗑️</div>
+        <div class="title">Enlace</div>
+
+        <label>URL</label>
+        <input class="input" name="link_url[]" placeholder="https://www.mycoolbrand.com"
+               hx-post="{% url 'vcards:preview' %}"" hx-trigger="keyup changed delay:300ms"
+               hx-target="#preview" hx-include="#editorForm" />
+
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label>Título</label>
+            <input class="input" name="link_title[]" placeholder="Título"
+                   hx-post="{% url 'vcards:preview' %}"" hx-trigger="keyup changed delay:300ms"
+                   hx-target="#preview" hx-include="#editorForm" />
+          </div>
+          <div>
+            <label>Subtítulo</label>
+            <input class="input" name="link_subtitle[]" placeholder="Subtítulo"
+                   hx-post="{% url 'vcards:preview' %}"" hx-trigger="keyup changed delay:300ms"
+                   hx-target="#preview" hx-include="#editorForm" />
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div style="margin-top:14px">
+      <button type="button" class="add-link-btn" id="addLinkBtn">+ Agregar enlace</button>
+    </div>
+  </div>
+</div>
+
+          </div>
+        </div>
+
+        <!-- RIGHT / PREVIEW -->
+        <div class="right">
+          <div class="sticky">
+            <div class="phone">
+              <div class="screen" id="preview">Cargando vista previa…</div>
+            </div>
+          </div>
+        </div>
+      </div> <!-- shell -->
+    </div>
+  </div>
+
+
+<script>
+/* =============== SWITCH (visual) =============== */
+document.addEventListener('click', (e)=>{
+  const sw = e.target.closest('.switch');
+  if(!sw) return;
+  sw.classList.toggle('on');
+});
+
+/* =============== ACCORDIONS (único controlador global) =============== */
+function accSetState(head, open){
+  const body = head.parentElement.querySelector('.acc-body');
+  const icon = head.querySelector('.acc-icon');
+  head.setAttribute('aria-expanded', open ? 'true' : 'false');
+  if (body) body.style.display = open ? 'block' : 'none';
+  if (icon) icon.textContent = open ? '−' : '+';
+}
+
+function accInit(root = document){
+  root.querySelectorAll('.acc-head').forEach(head=>{
+    // evita doble init
+    if (head.dataset.accInited === '1') return;
+    head.dataset.accInited = '1';
+    const startOpen = head.getAttribute('aria-expanded') === 'true';
+    accSetState(head, startOpen);
+  });
+}
+
+// init al cargar
+document.addEventListener('DOMContentLoaded', ()=> accInit(document));
+
+// delegación (un solo listener para todos)
+document.addEventListener('click', (e)=>{
+  const head = e.target.closest('.acc-head');
+  if(!head) return;
+  // Evita que un <button> dentro de un <form> dispare submit
+  e.preventDefault();
+  const isOpen = head.getAttribute('aria-expanded') === 'true';
+  accSetState(head, !isOpen);
+});
+
+// Si HTMX reemplaza partes con acordeones nuevos → reinicializa
+document.addEventListener('htmx:afterSwap', (evt)=>{
+  accInit(evt.target || document);
+});
+
+/* =============== Plantilla -> hidden + refresh =============== */
+(function(){
+  const hidden = document.getElementById('templateField');
+  const form   = document.getElementById('editorForm');
+  document.querySelectorAll('#templateRadios input[name="template"]').forEach(r=>{
+    r.addEventListener('change', ()=>{
+      if(hidden) hidden.value = r.value;
+      if(window.htmx && form){
+        htmx.ajax('POST','/vcards/preview/',{target:'#preview', values:new FormData(form)});
+      }
+    });
+  });
+})();
+
+/* =============== PROFILE: tiles imagen / video =============== */
+// Abrir input[file] al hacer clic en el tile de subir
+document.addEventListener('click', (e)=>{
+  const btn = e.target.closest('[data-upload-btn]');
+  if(!btn) return;
+  const form = btn.closest('form.asset-uploader');
+  const file = form?.querySelector('input[type="file"].hidden-file');
+  if(file) file.click();
+});
+
+// Preview local inmediato + POST HTMX
+document.addEventListener('change', (e)=>{
+  const input = e.target;
+  if(!input.matches('form.asset-uploader input[type="file"].hidden-file')) return;
+
+  const form = input.closest('form.asset-uploader');
+  const targetSel = form?.getAttribute('hx-target');        // p.ej. "#photoTile"
+  const targetEl  = targetSel ? document.querySelector(targetSel) : null;
+
+  if(!targetEl || !input.files || !input.files[0]){
+    form?.requestSubmit(); // respaldo
+    return;
+  }
+
+  const file = input.files[0];
+  const url  = URL.createObjectURL(file);
+
+  if(file.type.startsWith('image/')){
+    targetEl.innerHTML = `<img class="tile-preview" src="${url}" alt="">`;
+  }else if(file.type.startsWith('video/')){
+    targetEl.innerHTML = `<video class="tile-preview" src="${url}" muted loop playsinline></video>`;
+    targetEl.querySelector('video')?.play().catch(()=>{});
+  }
+
+  form.requestSubmit();
+  setTimeout(()=>{ input.value=""; }, 0); // permitir re-seleccionar el mismo archivo
+});
+</script>
+
+<!-- ================= Diseño / Colors (SIN registrar clicks del acordeón) ================= -->
+<script>
+(function(){
+  // ---------- Colors: swatches + sincronización ----------
+  const form = document.getElementById('colorsForm');
+  if(!form) return;
+
+  let activeField = form.querySelector('.color-field'); // por defecto el primero
+  if(activeField) activeField.classList.add('is-target');
+
+  form.addEventListener('focusin', (e)=>{
+    const cf = e.target.closest('.color-field');
+    if(!cf) return;
+    activeField?.classList.remove('is-target');
+    activeField = cf;
+    activeField.classList.add('is-target');
+  });
+
+  const toHex = (v)=>{
+    if(!v) return '';
+    v = v.trim();
+    if(/^#[0-9a-fA-F]{6}$/.test(v)) return v.toUpperCase();
+    if(/^#[0-9a-fA-F]{3}$/.test(v)){
+      const r=v[1], g=v[2], b=v[3];
+      return ('#'+r+r+g+g+b+b).toUpperCase();
+    }
+    if(/^[0-9a-fA-F]{6}$/.test(v)) return ('#'+v).toUpperCase();
+    return v.toUpperCase();
+  };
+
+  const applyToField = (cf, hex)=>{
+    if(!cf) return;
+    const hexInp   = cf.querySelector('.hex');
+    const pick     = cf.querySelector('.color-picker');
+    const cleanHex = toHex(hex);
+    if(hexInp) hexInp.value = cleanHex;
+    if(pick)   pick.value   = cleanHex;
+    if(window.htmx){
+      htmx.trigger(hexInp || pick, 'change');
+    }
+  };
+
+  form.querySelector('#swatchRow')?.addEventListener('click', (e)=>{
+    const sw = e.target.closest('.swatch');
+    if(!sw) return;
+    applyToField(activeField, sw.dataset.color);
+  });
+
+  form.addEventListener('input', (e)=>{
+    const pick = e.target.closest('.color-picker');
+    if(!pick) return;
+    const cf = pick.closest('.color-field');
+    const hexInp = cf.querySelector('.hex');
+    if(hexInp) hexInp.value = toHex(pick.value);
+  });
+
+  form.addEventListener('change', (e)=>{
+    const hexInp = e.target.closest('.hex');
+    if(!hexInp) return;
+    const cf = hexInp.closest('.color-field');
+    const pick = cf.querySelector('.color-picker');
+    const hv   = toHex(hexInp.value);
+    hexInp.value = hv;
+    if(/^#[0-9A-F]{6}$/.test(hv) && pick) pick.value = hv;
+  });
+})();
+</script>
+
+<!-- ===== El resto de tus bloques (Contact, Images, Social, Links) puede quedarse igual ===== -->
+
+
+<!-- ================= CONTACT ================= -->
+<script>
+(function(){
+  const form   = document.querySelector('#editorForm');
+  const list   = document.getElementById('contactList');
+  const menuWrap = document.getElementById('contactMenu');
+  const btnAdd  = menuWrap?.querySelector('.btn-add');
+  const menu    = menuWrap?.querySelector('.menu-list');
+  let counter = 0;
+
+  if(!form || !list || !btnAdd || !menu) return;
+
+  btnAdd.addEventListener('click', (e)=>{ e.stopPropagation(); menuWrap.classList.toggle('open'); });
+  document.addEventListener('click', ()=> menuWrap.classList.remove('open'));
+
+  function buildAllData(){
+    const fd = new FormData(form);
+    list.querySelectorAll('input, textarea, select').forEach(el=>{ if (el.name) fd.append(el.name, el.value); });
+    return fd;
+  }
+  function refreshPreview(){ window.htmx && htmx.ajax('POST', '/vcards/preview/', {target:'#preview', values: buildAllData()}); }
+
+  function bindDelete(el){
+    el.querySelector('.badge-del')?.addEventListener('click', ()=>{ el.remove(); refreshPreview(); });
+  }
+  const defaultItem = list.querySelector('[data-id="default-number"]');
+  if (defaultItem) bindDelete(defaultItem);
+
+  menu.querySelectorAll('.menu-item').forEach(item=>{
+    item.addEventListener('click', ()=>{
+      addContactItem(item.dataset.type);
+      menuWrap.classList.remove('open');
+    });
+  });
+
+  function addContactItem(type){
+    const id = `c${Date.now()}_${counter++}`;
+    const labels = {
+      email:   {left:'Label', right:'Email',   ph:'contactme@domain.com'},
+      number:  {left:'Label', right:'Number',  ph:'+52 55 1234 5678'},
+      address: {left:'Label', right:'Address', ph:'Calle, Ciudad, País'}
+    }[type];
+
+    const html = `
+      <div class="contact-item" data-id="${id}">
+        <div class="badge-del" title="Eliminar">🗑️</div>
+        <div class="contact-title">Contact ${labels.right}</div>
+        <div class="contact-grid">
+          <div>
+            <label>${labels.left}</label>
+            <input class="input" name="contact_label[]"
+                   placeholder="${labels.left}"
+                   hx-post="{% url 'vcards:preview' %}"" hx-trigger="keyup changed delay:250ms"
+                   hx-target="#preview" hx-include="#editorForm">
+          </div>
+          <div>
+            <label>${labels.right}</label>
+            <input class="input" name="contact_value[]"
+                   placeholder="${labels.ph}"
+                   hx-post="{% url 'vcards:preview' %}"" hx-trigger="keyup changed delay:250ms"
+                   hx-target="#preview" hx-include="#editorForm">
+          </div>
+        </div>
+        <input type="hidden" name="contact_type[]" value="${type}"
+               hx-post="{% url 'vcards:preview' %}"" hx-trigger="change"
+               hx-target="#preview" hx-include="#editorForm">
+      </div>`;
+    list.insertAdjacentHTML('beforeend', html);
+    bindDelete(list.querySelector(`[data-id="${id}"]`));
+    refreshPreview();
+  }
+})();
+</script>
+
+<!-- ================= IMAGES (galería) ================= -->
+<script>
+(function(){
+  const form      = document.querySelector('#editorForm');
+  const imageList = document.getElementById('imageList');
+  const viewRadios= document.querySelectorAll('input[name="images_view"]');
+  const bgToggle  = document.getElementById('imagesBgToggle');
+  const bgValue   = document.getElementById('imagesBgValue');
+  const uploadInp = document.getElementById('imageFile');
+  const uploadFrm = document.getElementById('imageUploadForm');
+
+  if(!form) return;
+
+  document.addEventListener('change', (e)=>{ if(e.target === uploadInp){ uploadFrm?.requestSubmit(); e.target.value=""; } });
+
+  function buildAllData(){
+    const fd = new FormData(form);
+    imageList?.querySelectorAll('input[name="images[]"]').forEach(el=> fd.append('images[]', el.value));
+    const vr = document.querySelector('input[name="images_view"]:checked'); if (vr) fd.set('images_view', vr.value);
+    if(bgValue) fd.set('images_card_bg', bgValue.value);
+    return fd;
+  }
+  function refreshPreview(){ window.htmx && htmx.ajax('POST', '/vcards/preview/', {target:'#preview', values: buildAllData()}); }
+
+  viewRadios.forEach(r=> r.addEventListener('change', refreshPreview));
+  bgToggle?.addEventListener('change', ()=>{ if(bgValue){ bgValue.value = bgToggle.checked ? '1' : '0'; } refreshPreview(); });
+})();
+</script>
+
+<!-- ================= Borrar thumbnails ================= -->
+<script>
+(function(){
+  const form      = document.getElementById('editorForm');
+  const imageList = document.getElementById('imageList');
+  if(!form || !imageList) return;
+
+  function buildAllData(){
+    const fd = new FormData(form);
+    imageList.querySelectorAll('input[name="images[]"]').forEach(i => fd.append('images[]', i.value));
+    const vr = document.querySelector('input[name="images_view"]:checked'); if (vr) fd.set('images_view', vr.value);
+    const bgv = document.getElementById('imagesBgValue'); if (bgv) fd.set('images_card_bg', bgv.value);
+    return fd;
+  }
+  function refreshPreview(){ window.htmx && htmx.ajax('POST', '/vcards/preview/', { target:'#preview', values: buildAllData() }); }
+
+  document.addEventListener('click', (e)=>{
+    const delBtn = e.target.closest('.image-del');
+    if (!delBtn) return;
+    const item = delBtn.closest('.image-item');
+    if (!item) return;
+    item.remove();
+    refreshPreview();
+  });
+
+  document.getElementById('imageUploadForm')?.addEventListener('htmx:afterRequest', refreshPreview);
+})();
+</script>
+
+<!-- ================= SOCIAL LINKS ================= -->
+<script>
+(function(){
+  const form   = document.querySelector('#editorForm');
+  const list   = document.getElementById('socialList');
+  const addBtn = document.getElementById('addSocialBtn');
+  let counter  = 0;
+
+  if(!form || !list || !addBtn) return;
+
+  function buildAllData(){
+    const fd = new FormData(form);
+    list.querySelectorAll('input, select').forEach(el=>{ if(el.name) fd.append(el.name, el.value); });
+    document.querySelectorAll('#imageList input[name="images[]"]').forEach(i=>fd.append('images[]', i.value));
+    const vr = document.querySelector('input[name="images_view"]:checked'); if (vr) fd.set('images_view', vr.value);
+    const bgv = document.getElementById('imagesBgValue'); if (bgv) fd.set('images_card_bg', bgv.value);
+    return fd;
+  }
+  function refreshPreview(){ window.htmx && htmx.ajax('POST','/vcards/preview/',{target:'#preview',values:buildAllData()}); }
+
+  function bindDelete(el){
+    el.querySelector('.badge-del')?.addEventListener('click', ()=>{ el.remove(); refreshPreview(); });
+  }
+
+  const def = list.querySelector('[data-id="default-social"]');
+  if (def) bindDelete(def);
+
+  addBtn.addEventListener('click', ()=>{
+    const id = `s_${Date.now()}_${counter++}`;
+    const html = `
+      <div class="social-item" data-id="${id}">
+        <div class="badge-del" title="Eliminar">🗑️</div>
+        <div class="social-grid">
+          <div class="select-wrap">
+            <select class="select" name="social_network[]"
+                    hx-post="{% url 'vcards:preview' %}"" hx-trigger="change"
+                    hx-target="#preview" hx-include="#editorForm">
+              <option>Facebook</option>
+              <option>Instagram</option>
+              <option>LinkedIn</option>
+              <option value="X">X (Twitter)</option>
+              <option>TikTok</option>
+              <option>YouTube</option>
+              <option>WhatsApp</option>
+              <option>Telegram</option>
+              <option>Snapchat</option>
+              <option>Pinterest</option>
+              <option>Reddit</option>
+              <option>GitHub</option>
+              <option>Twitch</option>
+              <option>Discord</option>
+              <option>Behance</option>
+              <option>Dribbble</option>
+              <option>Medium</option>
+              <option>Threads</option>
+              <option>Bluesky</option>
+              <option>Custom</option>
+            </select>
+          </div>
+          <input class="input" name="social_url[]" placeholder="URL"
+                 hx-post="{% url 'vcards:preview' %}"" hx-trigger="keyup changed delay:300ms"
+                 hx-target="#preview" hx-include="#editorForm">
+        </div>
+        <label style="margin-top:12px">Title</label>
+        <div class="social-grid" style="grid-template-columns:1fr 1fr">
+          <input class="input" name="social_label[]" placeholder="Label"
+                 hx-post="{% url 'vcards:preview' %}"" hx-trigger="keyup changed delay:300ms"
+                 hx-target="#preview" hx-include="#editorForm">
+          <input class="input" name="social_desc[]" placeholder="Short description"
+                 hx-post="{% url 'vcards:preview' %}"" hx-trigger="keyup changed delay:300ms"
+                 hx-target="#preview" hx-include="#editorForm">
+        </div>
+      </div>`;
+    list.insertAdjacentHTML('beforeend', html);
+    bindDelete(list.querySelector(`[data-id="${id}"]`));
+    refreshPreview();
+  });
+})();
+</script>
+
+<!-- ================= LINKS ================= -->
+<script>
+(function(){
+  const form  = document.getElementById('editorForm');
+  const list  = document.getElementById('linksList');
+  const addBtn= document.getElementById('addLinkBtn');
+  let counter = 0;
+
+  if(!form || !list || !addBtn) return;
+
+  function buildAllData(){
+    const fd = new FormData(form);
+    list.querySelectorAll('input, textarea, select').forEach(el=>{ if(el.name) fd.append(el.name, el.value); });
+    return fd;
+  }
+  function refreshPreview(){
+    window.htmx && htmx.ajax('POST','/vcards/preview/',{target:'#preview', values: buildAllData()});
+  }
+
+  function bindDelete(item){
+    item.querySelector('.link-del')?.addEventListener('click', ()=>{ item.remove(); refreshPreview(); });
+  }
+
+  const def = list.querySelector('[data-id="default-link"]');
+  if(def) bindDelete(def);
+
+  addBtn.addEventListener('click', ()=>{
+    const id = `lnk_${Date.now()}_${counter++}`;
+    const html = `
+      <div class="link-item" data-id="${id}">
+        <div class="link-del" title="Eliminar">🗑️</div>
+        <div class="title">Link</div>
+
+        <label>URL</label>
+        <input class="input" name="link_url[]" placeholder="https://www.mycoolbrand.com"
+               hx-post="{% url 'vcards:preview' %}"" hx-trigger="keyup changed delay:300ms"
+               hx-target="#preview" hx-include="#editorForm" />
+
+        <div class="row" style="margin-top:10px">
+          <div>
+            <label>Title</label>
+            <input class="input" name="link_title[]" placeholder="Title"
+                   hx-post="{% url 'vcards:preview' %}"" hx-trigger="keyup changed delay:300ms"
+                   hx-target="#preview" hx-include="#editorForm" />
+          </div>
+          <div>
+            <label>Sub Title</label>
+            <input class="input" name="link_subtitle[]" placeholder="Sub Title"
+                   hx-post="{% url 'vcards:preview' %}"" hx-trigger="keyup changed delay:300ms"
+                   hx-target="#preview" hx-include="#editorForm" />
+          </div>
+        </div>
+      </div>`;
+    list.insertAdjacentHTML('beforeend', html);
+    bindDelete(list.querySelector(`[data-id="${id}"]`));
+    refreshPreview();
+  });
+})();
+</script>
+
+
+</body>
+</html>

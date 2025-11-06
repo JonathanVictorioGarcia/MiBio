@@ -1,0 +1,20 @@
+{% extends "admin/_base.html" %}
+{% block title %}Soporte · Admin · MiBio{% endblock %}
+{% block page_title %}Soporte (tickets){% endblock %}
+{% block page_subtitle %}Bandeja de tickets{% endblock %}
+{% block content %}
+<div class="card p-4">
+  <div class="overflow-auto scrollbar-thin">
+    <table class="table-base min-w-[800px]">
+      <thead><tr><th>ID</th><th>Asunto</th><th>Usuario</th><th>Estado</th><th>Fecha</th><th></th></tr></thead>
+      <tbody>
+        <tr class="hover:bg-white/5">
+          <td>#1024</td><td>Problema con URL</td><td>uno@demo.com</td>
+          <td><span class="badge">Abierto</span></td><td>2025-10-20</td>
+          <td class="text-right"><a href="#" class="text-brand-500 hover:underline">Ver</a></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

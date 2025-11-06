@@ -1,0 +1,663 @@
+{% extends "base.html" %}
+{% block title %}Crear tarjeta - Mibio{% endblock %}
+
+{% block body %}
+<div class="min-h-dvh grid md:grid-cols-[260px_1fr]">
+  <!-- SIDEBAR unificado -->
+  <aside class="bg-slate-900/70 border-r border-slate-800 p-4 md:sticky md:top-0 md:h-dvh overflow-auto no-scrollbar">
+    {# si lo tienes en partials usa: "dashboard/partials/_sidebar_user.html" #}
+    {% include "dashboard/_sidebar_user.html" %}
+  </aside>
+
+  <!-- CONTENIDO -->
+  <main class="bg-gradient-to-b from-slate-900 to-slate-950">
+    <div class="wrap max-w-[1200px] mx-auto px-4 md:px-6 py-4">
+
+      <!-- ====== ESTILOS ESPECÍFICOS DE ESTA PÁGINA ====== -->
+      <style>
+        :root{ --bg:#0b1a3a; --panel:#f6f7fb; --card:#ffffff; --muted:#6b7280; --line:#e5e7eb;
+               --primary:#4f46e5; --primary-600:#4338ca; --ring:#c7d2fe; --ok:#10b981; --danger:#ef4444; --radius:14px; }
+        .frame{background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.06));border-radius:22px;padding:18px}
+        .shell{background:var(--panel);border-radius:16px;display:grid;grid-template-columns:minmax(620px,1fr) 390px;gap:18px;padding:18px}
+        .left{padding:8px} .right{padding:8px;position:relative} .sticky{position:sticky;top:12px}
+        @media (max-width:1200px){ .shell{grid-template-columns:1fr} .right{order:2} .left{order:1} }
+
+        .saveBar{position:sticky;top:12px;z-index:20;display:grid;grid-template-columns:auto 1fr auto;align-items:center;gap:12px;padding:10px 12px;margin-bottom:12px;border-radius:16px;background:linear-gradient(180deg,rgba(255,255,255,.14),rgba(255,255,255,.06));color:#e5e7eb}
+        .bar-title{margin:0;text-align:center;font-size:18px;font-weight:800}
+
+        .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:16px;margin-bottom:14px}
+        .card h3{margin:0 0 12px;font-size:14px;color:#111827;display:flex;align-items:center;gap:10px}
+        .hint{color:var(--muted);font-size:12px;margin-top:6px}
+        .input{width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:10px;outline:0;font-size:14px;background:#fff}
+        .input:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--ring)}
+        label{display:block;margin:8px 0 6px;font-weight:600;font-size:13px;color:#111827}
+        .row{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+        .btn{appearance:none;border:1px solid #d1d5db;background:#fff;border-radius:10px;padding:9px 12px;font-weight:600;cursor:pointer}
+        .btn.primary{background:var(--primary);border-color:var(--primary);color:#fff}
+        .btn.primary:hover{background:var(--primary-600)}
+        .btn.ghost{background:#f9fafb}
+
+        .templates{display:grid;grid-auto-flow:column;gap:12px;overflow-x:auto;padding-bottom:6px}
+        .tpl{min-width:120px;background:#fff;border:2px solid transparent;border-radius:12px;padding:8px;box-shadow:0 1px 0 rgba(0,0,0,.06)}
+        .tpl input{display:none}
+        .tpl img{display:block;width:100%;height:76px;object-fit:cover;border-radius:10px;border:1px solid #e5e7eb}
+        .tpl span{display:block;margin-top:6px;text-align:center;font-weight:600;font-size:12px}
+        .tpl input:checked + img{outline:3px solid var(--primary);border-color:var(--primary)}
+
+        .phone{width:360px;max-width:100%;background:#0f172a;border-radius:34px;border:12px solid #0b1020;box-shadow:inset 0 0 0 1px rgba(255,255,255,.05), 0 8px 20px rgba(2,6,23,.35);padding:10px}
+        .screen{background:#111827;border-radius:24px;padding:14px;color:#e5e7eb;min-height:640px}
+
+        .accordion{border:1px solid var(--line);border-radius:var(--radius);background:#fff;overflow:visible;margin-bottom:14px}
+        .accordion.card{padding:0}
+        .acc-head{width:100%;display:flex;align-items:center;justify-content:space-between;background:#eef2ff;padding:12px 16px;border:0;cursor:pointer;border-radius:var(--radius) var(--radius) 0 0}
+        .acc-title{color:#1e3a8a;font-weight:700;font-size:16px}
+        .acc-icon{width:28px;height:28px;border-radius:999px;background:#fff;border:1px solid #e5e7eb;display:grid;place-items:center;font-weight:800;color:#1e3a8a}
+        .acc-body{padding:16px;display:none}
+        .accordion.card .acc-body{padding:16px}
+
+        .profile-acc .assets-row{display:flex;gap:12px;margin-bottom:14px}
+        .profile-acc .asset-group{display:grid;grid-template-columns:92px 92px;gap:16px;align-items:start}
+        .profile-acc .tile{width:92px;height:92px;border-radius:12px;background:#fff;border:1px solid #e5e7eb;display:grid;place-items:center;overflow:hidden}
+        .profile-acc .tile-preview{width:100%;height:100%;object-fit:cover}
+        .profile-acc .avatar-preview{aspect-ratio:4/5}
+        .profile-acc .banner-preview{aspect-ratio:3/1}
+        input[type="file"].hidden-file{display:none !important}
+
+        .colors-acc .color-swatches{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:14px}
+        .swatch{width:54px;height:54px;border-radius:999px;position:relative;cursor:pointer;box-shadow:inset 0 -12px 0 rgba(255,255,255,.65);border:2px solid #e5e7eb}
+        .color-field{display:flex;gap:10px;align-items:center}
+        .color-picker{width:38px;height:38px;border:1px solid #d1d5db;border-radius:10px;padding:0;background:#fff}
+        .hex{flex:1 1 auto}
+        .colors-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+        @media (max-width:720px){ .colors-grid{grid-template-columns:1fr} }
+
+        .contact-list{display:flex;flex-direction:column;gap:12px;margin-top:10px}
+        .contact-item{background:#eef2ff;border:1px solid #e5e7eb;border-radius:12px;padding:14px;position:relative}
+        .contact-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+        .badge-del{position:absolute;right:10px;top:10px;width:30px;height:30px;border-radius:999px;background:#fff;border:1px solid #fecaca;color:#ef4444;display:grid;place-items:center;cursor:pointer;font-weight:800}
+
+        .view-types{display:flex;gap:12px;margin:6px 0 12px}
+        .vt{flex:0 0 120px;position:relative}
+        .vt input{display:none}
+        .vt label{display:block;border:1.5px solid #e5e7eb;border-radius:12px;padding:10px;cursor:pointer;background:#fff}
+        .vt .mock{height:44px;border:1px dashed #cbd5e1;border-radius:8px;background:#f8fafc;display:grid;place-items:center;font-size:12px;color:#64748b}
+        .vt .name{display:block;text-align:center;margin-top:6px;font-weight:700;font-size:12px;color:#1e3a8a}
+        .vt input:checked + label{outline:3px solid var(--ring);border-color:var(--primary)}
+
+        .image-list{display:flex;gap:10px;flex-wrap:wrap;margin-top:10px}
+        .image-item{position:relative;width:92px;height:92px;border-radius:12px;overflow:hidden;border:1px solid #e5e7eb;background:#f3f4f6}
+        .image-del{position:absolute;right:-6px;top:-6px;width:28px;height:28px;border-radius:999px;background:#fff;border:1px solid #fecaca;color:#ef4444;display:grid;place-items:center;font-weight:800}
+        .image-add{width:92px;height:92px;border:2px dashed #cbd5e1;border-radius:12px;display:grid;place-items:center;background:#fff;cursor:pointer}
+        .image-add:hover{background:#f8fafc}
+
+        .social-list{display:flex;flex-direction:column;gap:12px;margin-top:10px}
+        .social-item{background:#eef2ff;border:1px solid #e5e7eb;border-radius:12px;padding:14px;position:relative}
+        .social-grid{display:grid;grid-template-columns:220px 1fr;gap:12px}
+        .select{appearance:none;background:#fff;border:1px solid #d1d5db;border-radius:10px;padding:10px 12px}
+        .select-wrap{position:relative}
+        .select-wrap:after{content:"▾";position:absolute;right:12px;top:50%;transform:translateY(-50%);pointer-events:none;color:#6b7280}
+
+        .links-card{background:#f3f4fb;border:1px solid #e8ebf5;border-radius:12px;padding:16px}
+        .links-list{display:flex;flex-direction:column;gap:12px;margin-top:14px}
+        .link-item{background:#f6f7fd;border:1px solid #e8ebf5;border-radius:12px;padding:14px;position:relative}
+        .link-del{position:absolute;right:10px;top:10px;width:32px;height:32px;border-radius:999px;background:#fff;border:1px solid #fecaca;color:#ef4444;display:grid;place-items:center;cursor:pointer;font-weight:800}
+      </style>
+
+      <div class="frame">
+        <!-- Top bar -->
+        <div class="saveBar">
+          <a class="btn ghost" href="{% url 'dashboard:user_dashboard' %}">← Regresar</a>
+          <h1 class="bar-title">Tarjetas de visita digitales</h1>
+          <button class="btn primary" id="saveBtn">Guardar</button>
+        </div>
+
+        <!-- Lienzo editor + preview -->
+        <div class="shell">
+          <!-- Columna izquierda -->
+          <div class="left">
+            <div class="card">
+              <h3>URL de tu página</h3>
+              <div class="row">
+                <input class="input" name="slug_disabled" value="t1g007xjwuj" disabled />
+                <button class="btn ghost" type="button" onclick="navigator.clipboard.writeText('t1g007xjwuj')">Copiar</button>
+              </div>
+              <p class="hint">Una vez guardado, no se puede cambiar · mínimo 5 caracteres.</p>
+            </div>
+
+            <div class="card">
+              <h3>Página Plantilla <span class="hint" style="margin-left:6px">(haz clic para elegir)</span></h3>
+              <div class="templates" id="templateRadios">
+                <label class="tpl">
+                  <input type="radio" name="template" value="buro" checked
+                    hx-post="{% url 'vcards:preview' %}"
+                    hx-trigger="change"
+                    hx-target="#preview"
+                    hx-include="#editorForm, #templateRadios input[name='template']:checked" />
+                  <img src="https://images.unsplash.com/photo-1557800636-894a64c1696f?q=80&w=1400&auto=format&fit=crop" alt="Buro">
+                  <span>Buro</span>
+                </label>
+
+                <label class="tpl">
+                  <input type="radio" name="template" value="dual"
+                    hx-post="{% url 'vcards:preview' %}"
+                    hx-trigger="change"
+                    hx-target="#preview"
+                    hx-include="#editorForm, #templateRadios input[name='template']:checked" />
+                  <img src="https://images.unsplash.com/photo-1544717305-2782549b5136?q=80&w=1400&auto=format&fit=crop" alt="Dual">
+                  <span>Dual</span>
+                </label>
+              </div>
+            </div>
+
+            <!-- PERFIL -->
+            <form id="editorForm" class="card accordion profile-acc"
+                  hx-post="{% url 'vcards:preview' %}"
+                  hx-trigger="load, keyup changed delay:250ms, change"
+                  hx-target="#preview"
+                  hx-swap="innerHTML"
+                  hx-include="#templateRadios input[name='template']:checked">
+              {% csrf_token %}
+              <input type="hidden" name="template" id="templateField" value="buro">
+
+              <button type="button" class="acc-head" aria-expanded="true">
+                <div class="acc-left"><span class="acc-title">Perfil</span></div>
+                <span class="acc-icon">−</span>
+              </button>
+
+              <div class="acc-body" style="display:block">
+                <div class="assets-row">
+                  <!-- FOTO -->
+                  <div class="asset-group">
+                    <div id="photoTile" class="tile avatar-preview" aria-label="Foto de perfil">
+                      {% if photo %}<img src="{{ photo }}" alt="" class="tile-preview">{% else %}<div class="tile-empty">🖼️</div>{% endif %}
+                    </div>
+                    <form class="asset-uploader" hx-post="/vcards/upload-image/?field=photo"
+                          hx-encoding="multipart/form-data" hx-target="#photoTile" hx-swap="outerHTML">
+                      {% csrf_token %}
+                      <input type="file" name="image" accept="image/*" class="hidden-file">
+                      <div class="tile" data-upload-btn title="Subir foto">⬆︎</div>
+                    </form>
+                    <div class="hint" style="grid-column:1/-1;text-align:center">(500×625 px, 4:5)</div>
+                    <input type="hidden" name="photo" value="{{ photo|default:'' }}">
+                  </div>
+
+                  <!-- BANNER -->
+                  <div class="asset-group">
+                    <div id="bannerTile" class="tile banner-preview" aria-label="Banner">
+                      {% if banner %}<img src="{{ banner }}" alt="" class="tile-preview">{% else %}<div class="tile-empty">T</div>{% endif %}
+                    </div>
+                    <form class="asset-uploader" hx-post="/vcards/upload-image/?field=banner"
+                          hx-encoding="multipart/form-data" hx-target="#bannerTile" hx-swap="outerHTML">
+                      {% csrf_token %}
+                      <input type="file" name="image" accept="image/*" class="hidden-file">
+                      <div class="tile" data-upload-btn title="Subir banner">⬆︎</div>
+                    </form>
+                    <div class="hint" style="grid-column:1/-1;text-align:center">(160×80 px, 3:1)</div>
+                    <input type="hidden" name="banner" value="{{ banner|default:'' }}">
+                  </div>
+
+                  <!-- VIDEO -->
+                  <div class="asset-group">
+                    <div id="videoTile" class="tile" aria-label="Video">
+                      {% if video_url %}
+                        <video class="tile-preview" src="{{ video_url }}" muted loop playsinline></video>
+                      {% else %}
+                        <div class="tile-empty">▶︎</div>
+                      {% endif %}
+                    </div>
+                    <form class="asset-uploader" hx-post="/vcards/upload-video/?field=video"
+                          hx-encoding="multipart/form-data" hx-target="#videoTile" hx-swap="outerHTML">
+                      {% csrf_token %}
+                      <input type="file" name="video" accept="video/*" class="hidden-file">
+                      <div class="tile" data-upload-btn title="Subir video">⬆︎</div>
+                    </form>
+                    <div class="hint" style="grid-column:1/-1;text-align:center">Video cuadrado</div>
+                    <input type="hidden" name="video_url" value="{{ video_url|default:'' }}">
+                  </div>
+                </div>
+
+                <div class="field">
+                  <label>Nombre</label>
+                  <input class="input" name="full_name" placeholder="Nombre"
+                         hx-post="{% url 'vcards:preview' %}" hx-trigger="keyup changed delay:300ms"
+                         hx-target="#preview" hx-include="#editorForm">
+                </div>
+
+                <div class="field">
+                  <label>Profesión</label>
+                  <input class="input" name="job_title" placeholder="Profesión"
+                         hx-post="{% url 'vcards:preview' %}" hx-trigger="keyup changed delay:300ms"
+                         hx-target="#preview" hx-include="#editorForm">
+                </div>
+              </div>
+            </form>
+
+            <!-- DISEÑO -->
+            <form id="colorsForm" class="card accordion colors-acc"
+                  hx-post="{% url 'vcards:preview' %}"
+                  hx-trigger="load, change, keyup changed delay:250ms"
+                  hx-target="#preview"
+                  hx-swap="innerHTML"
+                  hx-include="#templateRadios input[name='template']:checked, #colorsForm">
+              {% csrf_token %}
+              <input type="hidden" name="template" value="buro">
+
+              <button type="button" class="acc-head" aria-expanded="true">
+                <div class="acc-left"><span class="acc-title">Diseño</span></div>
+                <span class="acc-icon">−</span>
+              </button>
+
+              <div class="acc-body" style="display:block">
+                <div class="color-swatches" id="swatchRow" aria-label="Colores rápidos">
+                  <div class="swatch" style="background:#517AFA" data-color="#517AFA" title="#517AFA"></div>
+                  <div class="swatch" style="background:#2B4C9B" data-color="#2B4C9B" title="#2B4C9B"></div>
+                  <div class="swatch" style="background:#D6285F" data-color="#D6285F" title="#D6285F"></div>
+                  <div class="swatch" style="background:#FF9F1C" data-color="#FF9F1C" title="#FF9F1C"></div>
+                  <div class="swatch" style="background:#2995A0" data-color="#2995A0" title="#2995A0"></div>
+                  <div class="swatch" style="background:#0E3B73" data-color="#0E3B73" title="#0E3B73"></div>
+                  <div class="swatch" style="background:#5866FF" data-color="#5866FF" title="#5866FF"></div>
+                </div>
+
+                <div class="colors-grid" id="colorsGrid">
+                  <div>
+                    <label>Color primario</label>
+                    <div class="color-field is-target" data-field="theme_primary">
+                      <input class="color-picker" type="color" name="theme_primary_picker" value="{{ theme_primary|default:'#517AFA' }}">
+                      <input class="input hex" type="text" name="theme_primary" value="{{ theme_primary|default:'#517AFA' }}" placeholder="#517AFA">
+                    </div>
+                  </div>
+
+                  <div>
+                    <label>Color secundario</label>
+                    <div class="color-field" data-field="theme_secondary">
+                      <input class="color-picker" type="color" name="theme_secondary_picker" value="{{ theme_secondary|default:'#C5FEFF' }}">
+                      <input class="input hex" type="text" name="theme_secondary" value="{{ theme_secondary|default:'#C5FEFF' }}" placeholder="#C5FEFF">
+                    </div>
+                  </div>
+
+                  <div>
+                    <label>Texto primario (Perfil)</label>
+                    <div class="color-field" data-field="profile_text_primary">
+                      <input class="color-picker" type="color" name="profile_text_primary_picker" value="{{ profile_text_primary|default:'#061244' }}">
+                      <input class="input hex" type="text" name="profile_text_primary" value="{{ profile_text_primary|default:'#061244' }}" placeholder="#061244">
+                    </div>
+                  </div>
+
+                  <div>
+                    <label>Texto secundario (Perfil)</label>
+                    <div class="color-field" data-field="profile_text_secondary">
+                      <input class="color-picker" type="color" name="profile_text_secondary_picker" value="{{ profile_text_secondary|default:'#76839B' }}">
+                      <input class="input hex" type="text" name="profile_text_secondary" value="{{ profile_text_secondary|default:'#76839B' }}" placeholder="#76839B">
+                    </div>
+                  </div>
+
+                  <div>
+                    <label>Texto primario (General)</label>
+                    <div class="color-field" data-field="text_primary">
+                      <input class="color-picker" type="color" name="text_primary_picker" value="{{ text_primary|default:'#061244' }}">
+                      <input class="input hex" type="text" name="text_primary" value="{{ text_primary|default:'#061244' }}" placeholder="#061244">
+                    </div>
+                  </div>
+
+                  <div>
+                    <label>Texto secundario (General)</label>
+                    <div class="color-field" data-field="text_secondary">
+                      <input class="color-picker" type="color" name="text_secondary_picker" value="{{ text_secondary|default:'#76839B' }}">
+                      <input class="input hex" type="text" name="text_secondary" value="{{ text_secondary|default:'#76839B' }}" placeholder="#76839B">
+                    </div>
+                  </div>
+
+                  <div>
+                    <label>Fondo de tarjeta</label>
+                    <div class="color-field" data-field="card_bg">
+                      <input class="color-picker" type="color" name="card_bg_picker" value="{{ card_bg|default:'#0D1626' }}">
+                      <input class="input hex" type="text" name="card_bg" value="{{ card_bg|default:'#0D1626' }}" placeholder="#0D1626">
+                    </div>
+                  </div>
+
+                  <div>
+                    <label>Fondo de contenedores/bloques</label>
+                    <div class="color-field" data-field="block_bg">
+                      <input class="color-picker" type="color" name="block_bg_picker" value="{{ block_bg|default:'#111827' }}">
+                      <input class="input hex" type="text" name="block_bg" value="{{ block_bg|default:'#111827' }}" placeholder="#111827">
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </form>
+
+            <!-- ACERCA DE -->
+            <div class="accordion" id="acc-heading">
+              <button type="button" class="acc-head" aria-controls="acc-heading-body" aria-expanded="false">
+                <div class="acc-left"><span class="acc-title">Acerca de</span></div>
+                <span class="acc-icon">+</span>
+              </button>
+              <div class="acc-body" id="acc-heading-body">
+                <label>Título</label>
+                <input class="input" name="section_title" placeholder="Acerca de"
+                       hx-post="{% url 'vcards:preview' %}" hx-trigger="keyup changed delay:250ms"
+                       hx-target="#preview" hx-include="#editorForm" />
+                <label style="margin-top:12px">Descripción</label>
+                <textarea class="input" name="section_desc" rows="4" placeholder="Descripción"
+                          hx-post="{% url 'vcards:preview' %}" hx-trigger="keyup changed delay:250ms"
+                          hx-target="#preview" hx-include="#editorForm"></textarea>
+              </div>
+            </div>
+
+            <!-- CONTACTOS -->
+            <div class="accordion" id="acc-contact">
+              <button type="button" class="acc-head" aria-controls="acc-contact-body" aria-expanded="false">
+                <div class="acc-left"><span class="acc-title">Contactos</span></div>
+                <span class="acc-icon">+</span>
+              </button>
+              <div class="acc-body" id="acc-contact-body">
+                <label>Título</label>
+                <input class="input" name="contact_section_title" placeholder="Contactos"
+                       hx-post="{% url 'vcards:preview' %}" hx-trigger="keyup changed delay:250ms"
+                       hx-target="#preview" hx-include="#editorForm" />
+
+                <div class="contact-list" id="contactList">
+                  <!-- Item por defecto -->
+                  <div class="contact-item" data-id="default-number">
+                    <div class="badge-del" title="Eliminar">🗑️</div>
+                    <div class="contact-title">Teléfono</div>
+                    <div class="contact-grid">
+                      <div>
+                        <label>Etiqueta</label>
+                        <input class="input" name="contact_label[]" placeholder="Etiqueta"
+                               hx-post="{% url 'vcards:preview' %}" hx-trigger="keyup changed delay:250ms"
+                               hx-target="#preview" hx-include="#editorForm">
+                      </div>
+                      <div>
+                        <label>Número</label>
+                        <input class="input" name="contact_value[]" placeholder="+52 55 1234 5678"
+                               hx-post="{% url 'vcards:preview' %}" hx-trigger="keyup changed delay:250ms"
+                               hx-target="#preview" hx-include="#editorForm">
+                      </div>
+                    </div>
+                    <input type="hidden" name="contact_type[]" value="number"
+                           hx-post="{% url 'vcards:preview' %}" hx-trigger="change"
+                           hx-target="#preview" hx-include="#editorForm">
+                  </div>
+                </div>
+
+                <div class="add-row">
+                  <div class="menu" id="contactMenu">
+                    <button type="button" class="btn-add">+ Agregar</button>
+                    <div class="menu-list">
+                      <div class="menu-item" data-type="email">Correo electrónico</div>
+                      <div class="menu-item" data-type="number">Número</div>
+                      <div class="menu-item" data-type="address">Dirección</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- GALERÍA -->
+            <div class="accordion" id="acc-images">
+              <button type="button" class="acc-head" aria-controls="acc-images-body" aria-expanded="false">
+                <div class="acc-left"><span class="acc-title">Galería</span></div>
+                <span class="acc-icon">+</span>
+              </button>
+              <div class="acc-body" id="acc-images-body">
+                <label>Tipo de vista</label>
+                <div class="view-types" id="viewTypes">
+                  <div class="vt">
+                    <input type="radio" id="vt-list" name="images_view" value="list" checked>
+                    <label for="vt-list"><div class="mock">Lista</div><span class="name">Lista</span></label>
+                  </div>
+                  <div class="vt">
+                    <input type="radio" id="vt-grid1" name="images_view" value="grid1">
+                    <label for="vt-grid1"><div class="mock">Cuadrícula 1</div><span class="name">Grid 1</span></label>
+                  </div>
+                  <div class="vt">
+                    <input type="radio" id="vt-grid2" name="images_view" value="grid2">
+                    <label for="vt-grid2"><div class="mock">Cuadrícula 2</div><span class="name">Grid 2</span></label>
+                  </div>
+                </div>
+
+                <label>Fotos <span class="hint">(600×600 px, 1:1 o 4:5)</span></label>
+                <div class="image-list" id="imageList">
+                  <form id="imageUploadForm"
+                        hx-post="/vcards/upload-image/"
+                        hx-encoding="multipart/form-data"
+                        hx-target="#imageList"
+                        hx-swap="beforeend"
+                        hx-on="htmx:afterRequest:
+                          const f=document.querySelector('#editorForm');
+                          const fd=new FormData(f);
+                          document.querySelectorAll('#imageList input[name=&quot;images[]&quot;]').forEach(i=>fd.append('images[]', i.value));
+                          const vr=document.querySelector('input[name=&quot;images_view&quot;]:checked'); if(vr) fd.set('images_view', vr.value);
+                          const bgv=document.getElementById('imagesBgValue'); if(bgv) fd.set('images_card_bg', bgv.value);
+                          htmx.ajax('POST','/vcards/preview/',{target:'#preview',values:fd});"
+                        style="display:inline-block">
+                    {% csrf_token %}
+                    <input type="file" name="image" id="imageFile" accept="image/*" style="display:none">
+                    <button type="button" class="image-add" onclick="document.getElementById('imageFile').click();" title="Subir imagen">⬆︎</button>
+                  </form>
+                </div>
+
+                <div class="bg-row">
+                  <div>
+                    <strong>Fondo de tarjeta</strong>
+                    <div class="hint">Activa un fondo oscuro para el bloque de imágenes en la previsualización</div>
+                  </div>
+                  <input type="checkbox" id="imagesBgToggle" aria-label="Activar fondo">
+                  <input type="hidden" name="images_card_bg" id="imagesBgValue" value="0">
+                </div>
+              </div>
+            </div>
+
+            <!-- REDES SOCIALES -->
+            <div class="accordion" id="acc-social">
+              <button type="button" class="acc-head" aria-controls="acc-social-body" aria-expanded="false">
+                <div class="acc-left"><span class="acc-title">Redes sociales</span></div>
+                <span class="acc-icon">+</span>
+              </button>
+              <div class="acc-body" id="acc-social-body">
+                <label>Título</label>
+                <input class="input" name="social_section_title" placeholder="Links de redes sociales"
+                       hx-post="{% url 'vcards:preview' %}" hx-trigger="keyup changed delay:250ms"
+                       hx-target="#preview" hx-include="#editorForm" />
+
+                <div class="social-list" id="socialList">
+                  <div class="social-item" data-id="default-social">
+                    <div class="badge-del" title="Eliminar">🗑️</div>
+                    <div class="social-grid">
+                      <div class="select-wrap">
+                        <select class="select" name="social_network[]"
+                                hx-post="{% url 'vcards:preview' %}" hx-trigger="change"
+                                hx-target="#preview" hx-include="#editorForm">
+                          <option>Facebook</option><option>Instagram</option><option>LinkedIn</option>
+                          <option value="X">X (Twitter)</option><option>TikTok</option><option>YouTube</option>
+                          <option>WhatsApp</option><option>Telegram</option><option>Snapchat</option>
+                          <option>Pinterest</option><option>Reddit</option><option>GitHub</option>
+                          <option>Twitch</option><option>Discord</option><option>Behance</option>
+                          <option>Dribbble</option><option>Medium</option><option>Threads</option>
+                          <option>Bluesky</option><option>Personalizado</option>
+                        </select>
+                      </div>
+                      <input class="input" name="social_url[]" placeholder="URL"
+                             hx-post="{% url 'vcards:preview' %}" hx-trigger="keyup changed delay:300ms"
+                             hx-target="#preview" hx-include="#editorForm">
+                    </div>
+
+                    <label style="margin-top:12px">Título</label>
+                    <div class="social-grid" style="grid-template-columns:1fr 1fr">
+                      <input class="input" name="social_label[]" placeholder="Facebook"
+                             hx-post="{% url 'vcards:preview' %}" hx-trigger="keyup changed delay:300ms"
+                             hx-target="#preview" hx-include="#editorForm">
+                      <input class="input" name="social_desc[]" placeholder="Síguenos en Facebook"
+                             hx-post="{% url 'vcards:preview' %}" hx-trigger="keyup changed delay:300ms"
+                             hx-target="#preview" hx-include="#editorForm">
+                    </div>
+                  </div>
+                </div>
+
+                <div class="add-row" style="margin-top:12px">
+                  <button type="button" class="btn-add" id="addSocialBtn">+ Agregar link</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- LINKS -->
+            <div class="accordion" id="acc-links">
+              <button type="button" class="acc-head" aria-controls="acc-links-body" aria-expanded="false">
+                <div class="acc-left"><span class="acc-title">Enlaces</span></div>
+                <span class="acc-icon">+</span>
+              </button>
+              <div class="acc-body" id="acc-links-body">
+                <div class="links-card">
+                  <label>Título</label>
+                  <input class="input" name="links_section_title" placeholder="Enlaces web"
+                         hx-post="{% url 'vcards:preview' %}" hx-trigger="keyup changed delay:300ms"
+                         hx-target="#preview" hx-include="#editorForm" />
+                  <label style="margin-top:10px">Descripción</label>
+                  <textarea class="input" name="links_section_desc" rows="4" placeholder="Descripción"
+                            hx-post="{% url 'vcards:preview' %}" hx-trigger="keyup changed delay:300ms"
+                            hx-target="#preview" hx-include="#editorForm"></textarea>
+                </div>
+
+                <div class="links-list" id="linksList">
+                  <div class="link-item" data-id="default-link">
+                    <div class="link-del" title="Eliminar">🗑️</div>
+                    <div class="title">Enlace</div>
+
+                    <label>URL</label>
+                    <input class="input" name="link_url[]" placeholder="https://www.mycoolbrand.com"
+                           hx-post="{% url 'vcards:preview' %}" hx-trigger="keyup changed delay:300ms"
+                           hx-target="#preview" hx-include="#editorForm" />
+
+                    <div class="row" style="margin-top:10px">
+                      <div>
+                        <label>Título</label>
+                        <input class="input" name="link_title[]" placeholder="Título"
+                               hx-post="{% url 'vcards:preview' %}" hx-trigger="keyup changed delay:300ms"
+                               hx-target="#preview" hx-include="#editorForm" />
+                      </div>
+                      <div>
+                        <label>Subtítulo</label>
+                        <input class="input" name="link_subtitle[]" placeholder="Subtítulo"
+                               hx-post="{% url 'vcards:preview' %}" hx-trigger="keyup changed delay:300ms"
+                               hx-target="#preview" hx-include="#editorForm" />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div style="margin-top:14px">
+                  <button type="button" class="add-link-btn" id="addLinkBtn">+ Agregar enlace</button>
+                </div>
+              </div>
+            </div>
+          </div> <!-- /left -->
+
+          <!-- Columna derecha: PREVIEW -->
+          <div class="right">
+            <div class="sticky">
+              <div class="phone">
+                <div class="screen" id="preview">Cargando vista previa…</div>
+              </div>
+            </div>
+          </div>
+        </div> <!-- /shell -->
+      </div> <!-- /frame -->
+    </div> <!-- /wrap -->
+  </main>
+</div>
+
+<!-- ====== SCRIPTS ESPECÍFICOS ====== -->
+<script>
+  function accSetState(head, open){
+    const body = head.parentElement.querySelector('.acc-body');
+    const icon = head.querySelector('.acc-icon');
+    head.setAttribute('aria-expanded', open ? 'true' : 'false');
+    if (body) body.style.display = open ? 'block' : 'none';
+    if (icon) icon.textContent = open ? '−' : '+';
+  }
+  function accInit(root=document){
+    root.querySelectorAll('.acc-head').forEach(head=>{
+      if(head.dataset.accInited==='1') return;
+      head.dataset.accInited='1';
+      const startOpen=head.getAttribute('aria-expanded')==='true';
+      accSetState(head,startOpen);
+    });
+  }
+  document.addEventListener('DOMContentLoaded', ()=> accInit(document));
+  document.addEventListener('click', (e)=>{
+    const head = e.target.closest('.acc-head');
+    if(!head) return;
+    e.preventDefault();
+    const isOpen = head.getAttribute('aria-expanded')==='true';
+    accSetState(head, !isOpen);
+  });
+  document.addEventListener('htmx:afterSwap', (evt)=> accInit(evt.target||document));
+
+  (function(){
+    const hidden = document.getElementById('templateField');
+    const form   = document.getElementById('editorForm');
+    document.querySelectorAll('#templateRadios input[name="template"]').forEach(r=>{
+      r.addEventListener('change', ()=>{
+        if(hidden) hidden.value = r.value;
+        if(window.htmx && form){
+          htmx.ajax('POST','{% url "vcards:preview" %}',{target:'#preview', values:new FormData(form)});
+        }
+      });
+    });
+  })();
+
+  document.addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-upload-btn]');
+    if(!btn) return;
+    const form = btn.closest('form.asset-uploader');
+    const file = form?.querySelector('input[type="file"].hidden-file');
+    if(file) file.click();
+  });
+  document.addEventListener('change', (e)=>{
+    const input = e.target;
+    if(!input.matches('form.asset-uploader input[type="file"].hidden-file')) return;
+    const form = input.closest('form.asset-uploader');
+    const targetSel = form?.getAttribute('hx-target');
+    const targetEl  = targetSel ? document.querySelector(targetSel) : null;
+    if(!targetEl || !input.files || !input.files[0]){ form?.requestSubmit(); return; }
+    const file = input.files[0]; const url = URL.createObjectURL(file);
+    if(file.type.startsWith('image/')) targetEl.innerHTML = `<img class="tile-preview" src="${url}" alt="">`;
+    else if(file.type.startsWith('video/')) targetEl.innerHTML = `<video class="tile-preview" src="${url}" muted loop playsinline></video>`;
+    form.requestSubmit(); setTimeout(()=>{ input.value=""; }, 0);
+  });
+
+  (function(){
+    const form = document.getElementById('colorsForm');
+    if(!form) return;
+    let activeField = form.querySelector('.color-field');
+    if(activeField) activeField.classList.add('is-target');
+    form.addEventListener('focusin', (e)=>{
+      const cf = e.target.closest('.color-field');
+      if(!cf) return;
+      activeField?.classList.remove('is-target');
+      activeField = cf; activeField.classList.add('is-target');
+    });
+    const toHex=(v)=>{ if(!v) return ''; v=v.trim();
+      if(/^#[0-9a-fA-F]{6}$/.test(v)) return v.toUpperCase();
+      if(/^#[0-9a-fA-F]{3}$/.test(v)){const r=v[1],g=v[2],b=v[3]; return ('#'+r+r+g+g+b+b).toUpperCase();}
+      if(/^[0-9a-fA-F]{6}$/.test(v)) return ('#'+v).toUpperCase(); return v.toUpperCase();
+    };
+    const applyToField=(cf,hex)=>{ if(!cf) return; const hexInp=cf.querySelector('.hex'); const pick=cf.querySelector('.color-picker');
+      const clean=toHex(hex); if(hexInp) hexInp.value=clean; if(pick) pick.value=clean; if(window.htmx){ htmx.trigger(hexInp||pick,'change'); }
+    };
+    form.querySelector('#swatchRow')?.addEventListener('click',(e)=>{
+      const sw=e.target.closest('.swatch'); if(!sw) return; applyToField(activeField, sw.dataset.color);
+    });
+    form.addEventListener('input',(e)=>{
+      const pick=e.target.closest('.color-picker'); if(!pick) return;
+      const cf=pick.closest('.color-field'); const hexInp=cf.querySelector('.hex'); if(hexInp) hexInp.value=toHex(pick.value);
+    });
+    form.addEventListener('change',(e)=>{
+      const hexInp=e.target.closest('.hex'); if(!hexInp) return;
+      const cf=hexInp.closest('.color-field'); const pick=cf.querySelector('.color-picker'); const hv=toHex(hexInp.value);
+      hexInp.value=hv; if(/^#[0-9A-F]{6}$/.test(hv) && pick) pick.value=hv;
+    });
+  })();
+</script>
+{% endblock %}

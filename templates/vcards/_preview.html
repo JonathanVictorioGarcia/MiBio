@@ -1,0 +1,83 @@
+<!-- Este HTML se inserta dentro de #preview (NO incluye <html> ni <body>) -->
+<style>
+  .pv-card{background: {{ card_bg }}; border:1px solid rgba(255,255,255,.06); border-radius:14px; padding:12px;}
+  .pv-title{color: {{ profile_text_primary }}; font-weight:800; font-size:18px; margin:6px 0 2px}
+  .pv-sub{color: {{ profile_text_secondary }}; font-size:12px}
+  .pv-chip{display:inline-block; font-size:11px; padding:4px 8px; border-radius:999px; background: {{ theme_secondary }}; color:#0b1020; font-weight:700}
+  .pv-block{background: {{ block_bg }}; border:1px solid rgba(255,255,255,.08); border-radius:12px; padding:12px; margin-top:10px}
+  .pv-h{font-weight:800; font-size:13px; margin:0 0 8px; color:#e5e7eb}
+  .pv-txt{color: {{ text_secondary }}; font-size:13px; margin:0}
+  .pv-contact{display:grid; grid-template-columns:1fr; gap:6px}
+  .pv-link{display:block; padding:10px; border-radius:10px; background:#0b1220; border:1px solid #1f2937; color:#e5e7eb; text-decoration:none}
+  .pv-social{display:flex; flex-direction:column; gap:8px}
+  .pv-dot{width:8px; height:8px; border-radius:999px; background: {{ theme_primary }}; display:inline-block; margin-right:8px}
+</style>
+
+<div>
+  <!-- top/badges -->
+  <div class="topbar">
+    <span class="badge">Plantilla: {{ template|title }}</span>
+    <span class="badge">Vista previa</span>
+  </div>
+
+  {% if banner %}
+    <div class="avatar" style="background:url('{{ banner }}') center/cover no-repeat; height:100px; border-radius:10px;"></div>
+  {% endif %}
+
+  {% if photo %}
+    <div style="display:grid; place-items:center; margin-top:-28px; margin-bottom:6px;">
+      <img src="{{ photo }}" alt="" style="width:96px; height:96px; object-fit:cover; border-radius:14px; border:3px solid #0b1020;">
+    </div>
+  {% endif %}
+
+  <div class="pv-card">
+    <span class="pv-chip" style="border:1px solid rgba(0,0,0,.04)">Mibio</span>
+    <div class="pv-title">{{ full_name }}</div>
+    <div class="pv-sub">{{ job_title }}</div>
+  </div>
+
+  <div class="pv-block">
+    <div class="pv-h">{{ section_title }}</div>
+    <p class="pv-txt">{{ section_desc }}</p>
+  </div>
+
+  {% if contacts %}
+    <div class="pv-block">
+      <div class="pv-h">Contacto</div>
+      <div class="pv-contact">
+        {% for c in contacts %}
+          {% if c.label or c.value %}
+            <div class="pv-txt"><span class="pv-dot"></span><strong>{{ c.label|default:"Dato" }}:</strong> {{ c.value }}</div>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  {% if socials %}
+    <div class="pv-block">
+      <div class="pv-h">Redes</div>
+      <div class="pv-social">
+        {% for s in socials %}
+          {% if s.url %}
+            <a class="pv-link" href="{{ s.url }}" target="_blank" rel="noopener">
+              <strong>{{ s.label|default:s.network }}</strong>
+              {% if s.desc %}<div style="font-size:12px; color:#94a3b8">{{ s.desc }}</div>{% endif %}
+            </a>
+          {% endif %}
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+
+  {% if images %}
+    <div class="pv-block" style="{% if images_bg %}background:#0b1220{% endif %}">
+      <div class="pv-h">Galería ({{ images_view }})</div>
+      <div style="display:flex; gap:8px; flex-wrap:wrap">
+        {% for img in images %}
+          <img src="{{ img }}" alt="" style="width:92px; height:92px; object-fit:cover; border-radius:10px; border:1px solid #1f2937;">
+        {% endfor %}
+      </div>
+    </div>
+  {% endif %}
+</div>

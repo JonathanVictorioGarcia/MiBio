@@ -1,0 +1,323 @@
+{% extends "base.html" %}
+{% block title %}Mis tarjetas - Mibio{% endblock %}
+
+{% block body %}
+<div class="grid min-h-dvh md:grid-cols-[260px_1fr]">
+  <!-- SIDEBAR -->
+  <aside class="bg-slate-900/70 border-r border-slate-800 p-4 md:sticky md:top-0 md:h-dvh overflow-auto no-scrollbar">
+    {% include "dashboard/_sidebar_user.html" %}
+  </aside>
+
+  <!-- CONTENIDO -->
+  <main class="p-4 md:p-6">
+    <style>
+      /* helpers visuales usados en las cards */
+      .soft-card{box-shadow:0 8px 25px rgba(2,6,23,.12)}
+      .icon-btn{inline-size:36px; block-size:36px; display:grid; place-items:center;
+                border-radius:10px; border:1px solid rgb(226 232 240); background:#fff}
+      .icon-btn:hover{background:#f8fafc}
+      .chip{display:inline-flex; align-items:center; gap:.5ch; padding:.35rem .6rem;
+            border:1px solid rgb(226 232 240); border-radius:999px; font-weight:600;
+            font-size:.75rem; color:rgb(71 85 105); background:#fff}
+      .dot{width:.5rem; height:.5rem; border-radius:999px}
+
+      .folder-menu{
+        position:absolute; top:120%; right:0;
+        background:#fff; color:#0f172a; border:1px solid #e2e8f0;
+        border-radius:12px; padding:6px; min-width:160px; box-shadow:0 10px 30px rgba(2,6,23,.12)
+      }
+      .folder-menu-item{
+        display:block; width:100%; text-align:left;
+        padding:.5rem .75rem; border-radius:.5rem
+      }
+      .folder-menu-item:hover{ background:#f8fafc }
+    </style>
+
+    <div class="mx-auto max-w-[1200px]">
+      <!-- Top bar -->
+      <div class="sticky top-3 z-10 mb-4 grid grid-cols-1 sm:grid-cols-[1fr_auto] items-center gap-3">
+        <h1 class="text-slate-200 font-extrabold tracking-tight text-xl md:text-2xl">Mis tarjetas</h1>
+        <div class="justify-self-end flex gap-2">
+          <!-- BOTÓN abre modal de carpeta (modo crear) -->
+          <button
+            type="button"
+            class="px-3 py-2 rounded-xl bg-slate-800 border border-slate-700 text-slate-200 hover:bg-slate-700"
+            onclick="openFolderModal({mode:'create'})">
+            Crear carpeta
+          </button>
+          <a href="{% url 'dashboard:user_vcard_create' %}" class="px-3 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-500">
+            Crear tarjeta
+          </a>
+        </div>
+      </div>
+
+      <!-- Cintillo de filtros -->
+      <div class="bg-slate-900/50 border border-slate-800 rounded-2xl p-3 md:p-4 soft-card">
+        <div class="flex flex-col lg:flex-row gap-3">
+          <!-- Buscar -->
+          <label class="sr-only" for="q">Buscar</label>
+          <div class="flex-1 relative">
+            <input id="q" type="search" placeholder="Buscar tarjeta..."
+                   class="w-full h-11 rounded-xl bg-slate-800/70 border border-slate-700 px-4 pr-10 text-slate-200 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-indigo-500">
+            <svg class="absolute right-3 top-1/2 -translate-y-1/2 size-5 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="11" cy="11" r="7" stroke-width="1.7"/><path d="m20 20-3.5-3.5" stroke-width="1.7" stroke-linecap="round"/></svg>
+          </div>
+
+          <!-- Carpeta -->
+          <div class="min-w-[200px]">
+  <select id="folderSelect"
+          class="w-full h-11 rounded-xl bg-white border border-slate-200 px-3 text-slate-700"
+          hx-get="{% url 'folders:options' %}"
+          hx-trigger="load, folder:changed from:body"
+          hx-swap="innerHTML">
+    <option value="">Todas las carpetas</option>
+  </select>
+</div>
+
+
+          <!-- Orden -->
+          <div class="min-w-[200px]">
+            <select class="w-full h-11 rounded-xl bg-white border border-slate-200 px-3 text-slate-700">
+              <option>Más recientes</option>
+              <option>A–Z</option>
+              <option>Z–A</option>
+              <option>Más vistas</option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Chips de carpetas -->
+        <div id="foldersChips"
+             class="mt-3 flex flex-wrap gap-2"
+             hx-get="{% url 'folders:chips' %}"
+             hx-trigger="load"
+             hx-swap="outerHTML">
+          {# contenido inicial de fallback, opcional (si pasas folders en el contexto) #}
+          {% if folders %}
+            {% for f in folders %}
+              <span class="chip">
+                <span class="dot" style="background: {{ f.color|default:'#6366f1' }}"></span> {{ f.name }}
+                <span class="relative">
+                  <button type="button" class="ml-1 text-slate-500 hover:text-slate-700" onclick="toggleFolderMenu(this)" aria-haspopup="menu" aria-expanded="false">⋯</button>
+                  <div class="folder-menu" hidden role="menu">
+                    <button type="button" class="folder-menu-item" role="menuitem"
+                            onclick="openFolderModal({mode:'edit', id:'{{ f.id }}', name:'{{ f.name|escapejs }}', color:'{{ f.color|escapejs }}'})">
+                      Editar
+                    </button>
+                    <button type="button" class="folder-menu-item text-rose-600" role="menuitem"
+                            onclick="openDeleteConfirm('{{ f.id }}','{{ f.name|escapejs }}')">
+                      Eliminar
+                    </button>
+                  </div>
+                </span>
+              </span>
+            {% endfor %}
+          {% else %}
+            <span class="chip">Sin carpetas</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- GRID de tarjetas (demo) -->
+      <section class="mt-6 grid gap-5 sm:grid-cols-2 xl:grid-cols-3">
+        {% for i in "123456" %}
+        <article class="rounded-2xl bg-white border border-slate-200 soft-card overflow-hidden">
+          <!-- Imagen -->
+          <div class="aspect-[16/9] bg-slate-100">
+            <img class="w-full h-full object-cover" src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?q=80&w=1200&auto=format&fit=crop" alt="Previsualización de tarjeta">
+          </div>
+
+          <!-- Contenido -->
+          <div class="p-4">
+            <div class="flex items-start justify-between gap-3">
+              <div>
+                <h3 class="font-extrabold text-slate-800 leading-tight">Nombre Tarjeta</h3>
+                <div class="mt-1 text-sm text-slate-500">Carpeta · Marketing</div>
+              </div>
+              <button class="icon-btn" title="Más opciones">
+                <svg class="size-5 text-slate-600" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
+              </button>
+            </div>
+
+            <!-- Acciones principales -->
+            <div class="mt-4 grid grid-cols-2 gap-2">
+              <a class="inline-flex items-center justify-center h-10 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-500">Ver tarjeta</a>
+              <button class="inline-flex items-center justify-center h-10 rounded-xl bg-slate-900 text-white hover:bg-slate-800">
+                <svg class="mr-2 size-4" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M4 12v6a2 2 0 0 0 2 2h6" stroke-width="1.6"/><rect x="8" y="4" width="12" height="12" rx="2" stroke-width="1.6"/></svg>
+                Compartir
+              </button>
+            </div>
+          </div>
+
+          <!-- Footer -->
+          <div class="px-4 pb-4">
+            <div class="mt-2 flex items-center justify-between">
+              <div class="inline-flex items-center gap-2 text-slate-600 font-semibold">
+                <svg class="size-5" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M2 12s4-7 10-7 10 7 10 7-4 7-10 7-10-7-10-7Z" stroke-width="1.6"/><circle cx="12" cy="12" r="3" stroke-width="1.6"/></svg>
+                <span>108</span>
+              </div>
+              <div class="flex items-center gap-2">
+                <a class="icon-btn" title="Editar">
+                  <svg class="size-5 text-slate-700" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M12 20h9" stroke-width="1.7"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L8 18l-4 1 1-4 11.5-11.5Z" stroke-width="1.7" stroke-linejoin="round"/></svg>
+                </a>
+                <button class="icon-btn" title="Copiar enlace">
+                  <svg class="size-5 text-slate-700" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M8 12a4 4 0 0 1 4-4h2" stroke-width="1.7" stroke-linecap="round"/><path d="M16 12a4 4 0 0 1-4 4H10" stroke-width="1.7" stroke-linecap="round"/><rect x="14" y="4" width="8" height="8" rx="2" stroke-width="1.7"/><rect x="2" y="12" width="8" height="8" rx="2" stroke-width="1.7"/></svg>
+                </button>
+                <button class="icon-btn" title="Eliminar">
+                  <svg class="size-5 text-rose-600" viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 6h18" stroke-width="1.7"/><path d="M8 6V4h8v2" stroke-width="1.7"/><rect x="6" y="6" width="12" height="14" rx="2" stroke-width="1.7"/></svg>
+                </button>
+              </div>
+            </div>
+          </div>
+        </article>
+        {% endfor %}
+      </section>
+
+      <!-- Paginación demo -->
+      <nav class="mt-8 flex justify-center gap-2">
+        <button class="h-10 w-10 rounded-xl border border-slate-300 bg-white hover:bg-slate-50">1</button>
+        <button class="h-10 w-10 rounded-xl border border-slate-300 bg-white hover:bg-slate-50">2</button>
+        <button class="h-10 w-10 rounded-xl border border-slate-300 bg-white hover:bg-slate-50">3</button>
+        <button class="h-10 w-10 rounded-xl border border-slate-300 bg-white hover:bg-slate-50">4</button>
+      </nav>
+    </div>
+  </main>
+
+  <!-- MODAL Carpeta -->
+  <div id="folderModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/50" onclick="closeFolderModal()" aria-hidden="true"></div>
+
+    <div class="absolute inset-0 grid place-items-center p-4">
+      <div class="w-full max-w-md rounded-2xl bg-white text-slate-800 shadow-xl" role="dialog" aria-modal="true" aria-labelledby="folderModalTitle">
+        <div class="p-5 border-b border-slate-200 flex items-center justify-between">
+          <h3 id="folderModalTitle" class="text-lg font-bold">Crear carpeta</h3>
+          <button class="text-slate-500 hover:text-slate-700" onclick="closeFolderModal()" aria-label="Cerrar">✕</button>
+        </div>
+
+        <!-- form reutilizable (crear/editar) -->
+       <form id="folderForm"
+      method="POST"
+      class="p-5 grid gap-4"
+      hx-post="{% url 'folders:save' %}"
+      hx-target="#foldersChips"
+      hx-swap="outerHTML"
+      hx-disabled-elt="#folderSubmitBtn"
+      hx-on="htmx:afterOnLoad: closeFolderModal(); toast('Carpeta guardada'); document.body.dispatchEvent(new Event('folder:changed'));">
+
+  {% csrf_token %}
+  <input type="hidden" name="id" id="folderId" value="">
+
+  <label class="grid gap-1">
+    <span class="text-sm font-semibold text-slate-700">Nombre de la carpeta</span>
+    <input id="folderName" name="name" required minlength="2" maxlength="60"
+           class="h-11 rounded-xl border border-slate-300 px-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+           placeholder="Ej. Marketing" />
+  </label>
+
+  <label class="grid gap-1">
+    <span class="text-sm font-semibold text-slate-700">Color</span>
+    <input id="folderColor" name="color" type="color" value="#6366f1"
+           class="h-11 w-20 rounded-md border border-slate-300 p-1" />
+  </label>
+
+  <div class="pt-2 flex justify-end gap-2">
+    <button type="button" class="px-3 h-10 rounded-xl border border-slate-300 bg-white hover:bg-slate-50"
+            onclick="closeFolderModal()">
+      Cancelar
+    </button>
+    <button id="folderSubmitBtn" type="submit"
+            class="px-4 h-10 rounded-xl bg-indigo-600 text-white font-semibold hover:bg-indigo-500">
+      Guardar
+    </button>
+  </div>
+</form>
+
+
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL Confirmar eliminación -->
+  <div id="deleteModal" class="fixed inset-0 z-50 hidden">
+    <div class="absolute inset-0 bg-black/50" onclick="closeDeleteModal()" aria-hidden="true"></div>
+    <div class="absolute inset-0 grid place-items-center p-4">
+      <div class="w-full max-w-md rounded-2xl bg-white text-slate-800 shadow-xl" role="dialog" aria-modal="true">
+        <div class="p-5 border-b border-slate-200 flex items-center justify-between">
+          <h3 class="text-lg font-bold">Eliminar carpeta</h3>
+          <button class="text-slate-500 hover:text-slate-700" onclick="closeDeleteModal()" aria-label="Cerrar">✕</button>
+        </div>
+        <div class="p-5">
+          <p class="text-slate-700">¿Seguro que quieres eliminar la carpeta <strong id="delName">…</strong>?</p>
+          <p class="text-slate-500 text-sm mt-1">Las tarjetas no se borran; quedarán “sin carpeta”.</p>
+        </div>
+        <div class="px-5 pb-5 flex justify-end gap-2">
+          <button class="px-3 h-10 rounded-xl border border-slate-300 bg-white hover:bg-slate-50"
+                  onclick="closeDeleteModal()">Cancelar</button>
+          <form id="deleteForm"
+      hx-post="{% url 'folders:delete' %}"
+      hx-target="#foldersChips"
+      hx-swap="outerHTML"
+      hx-on="htmx:afterOnLoad: closeDeleteModal(); toast('Carpeta eliminada'); document.body.dispatchEvent(new Event('folder:changed'));">
+            {% csrf_token %}
+            <input type="hidden" name="id" id="delId" value="">
+            <button type="submit" class="px-4 h-10 rounded-xl bg-rose-600 text-white font-semibold hover:bg-rose-500">
+              Eliminar
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+  // Menú contextual de cada chip
+  function toggleFolderMenu(btn){
+    const menu = btn.nextElementSibling;
+    document.querySelectorAll('.folder-menu').forEach(m => { if(m!==menu) m.hidden = true; });
+    menu.hidden = !menu.hidden;
+    btn.setAttribute('aria-expanded', menu.hidden ? 'false' : 'true');
+  }
+  document.addEventListener('click', (e) => {
+    if(!e.target.closest('.folder-menu') && !e.target.closest('[onclick*="toggleFolderMenu"]')){
+      document.querySelectorAll('.folder-menu').forEach(m => m.hidden = true);
+    }
+  });
+
+  // Modal: abrir en modo crear/editar
+  // OJO: NO tocamos hx-post del form; siempre va a folders:save
+  function openFolderModal({mode='create', id='', name='', color='#6366f1'} = {}){
+    document.getElementById('folderId').value    = id || '';
+    document.getElementById('folderName').value  = name || '';
+    document.getElementById('folderColor').value = color || '#6366f1';
+
+    const isEdit = mode === 'edit';
+    document.getElementById('folderModalTitle').textContent = isEdit ? 'Editar carpeta' : 'Crear carpeta';
+    document.getElementById('folderSubmitBtn').textContent  = isEdit ? 'Actualizar'     : 'Guardar';
+
+    document.getElementById('folderModal').classList.remove('hidden');
+  }
+  function closeFolderModal(){
+    document.getElementById('folderModal').classList.add('hidden');
+  }
+
+  // Modal delete
+  function openDeleteConfirm(id, name){
+    document.getElementById('delId').value = id;
+    document.getElementById('delName').textContent = name;
+    document.getElementById('deleteModal').classList.remove('hidden');
+  }
+  function closeDeleteModal(){
+    document.getElementById('deleteModal').classList.add('hidden');
+  }
+
+  // Toast simple
+  function toast(msg){
+    const t = document.createElement('div');
+    t.textContent = msg;
+    t.className = 'fixed bottom-4 left-1/2 -translate-x-1/2 bg-slate-900 text-white px-4 py-2 rounded-xl shadow-lg';
+    document.body.appendChild(t);
+    setTimeout(()=>t.remove(), 2000);
+  }
+</script>
+
+</div>
+{% endblock %}

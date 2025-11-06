@@ -1,0 +1,27 @@
+{% extends "admin/_base.html" %}
+{% block title %}Ajustes · Admin · MiBio{% endblock %}
+{% block page_title %}Ajustes{% endblock %}
+{% block page_subtitle %}Marca, dominios, SMTP, API Keys{% endblock %}
+{% block content %}
+<div class="grid lg:grid-cols-2 gap-6">
+  <form class="card p-4 space-y-3">
+    <h4 class="font-semibold">Marca</h4>
+    <input class="w-full px-3 py-2 rounded-lg bg-slate-900 ring-soft text-sm" placeholder="Nombre del sitio" />
+    <input class="w-full px-3 py-2 rounded-lg bg-slate-900 ring-soft text-sm" placeholder="Dominio principal" />
+    <button class="btn">Guardar</button>
+  </form>
+  <form class="card p-4 space-y-3">
+    <h4 class="font-semibold">SMTP</h4>
+    <input class="w-full px-3 py-2 rounded-lg bg-slate-900 ring-soft text-sm" placeholder="SMTP host" />
+    <input class="w-full px-3 py-2 rounded-lg bg-slate-900 ring-soft text-sm" placeholder="Usuario" />
+    <input class="w-full px-3 py-2 rounded-lg bg-slate-900 ring-soft text-sm" placeholder="Password" type="password" />
+    <button class="btn">Guardar</button>
+  </form>
+  <form class="card p-4 space-y-3 lg:col-span-2">
+    <h4 class="font-semibold">API Keys</h4>
+    <input class="w-full px-3 py-2 rounded-lg bg-slate-900 ring-soft text-sm" placeholder="Google Analytics" />
+    <input class="w-full px-3 py-2 rounded-lg bg-slate-900 ring-soft text-sm" placeholder="Servicio de Emails" />
+    <button class="btn">Guardar</button>
+  </form>
+</div>
+{% endblock %}

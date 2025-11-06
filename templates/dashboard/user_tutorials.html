@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+{% block title %}Tutoriales - Mibio{% endblock %}
+
+{% block body %}
+<div class="min-h-dvh grid md:grid-cols-[260px_1fr]">
+  <!-- SIDEBAR -->
+  <aside class="bg-slate-900/70 border-r border-slate-800 p-4 md:sticky md:top-0 md:h-dvh overflow-auto no-scrollbar">
+    {% include "dashboard/_sidebar_user.html" %}
+  </aside>
+
+  <!-- MAIN -->
+  <main class="bg-gradient-to-b from-slate-900 to-slate-950 text-slate-100">
+    <div class="max-w-6xl mx-auto px-4 py-6 md:py-10">
+      <!-- Header -->
+      <div class="flex items-start md:items-center justify-between gap-4">
+        <div>
+          <h1 class="text-2xl md:text-3xl font-extrabold tracking-tight">Tutoriales</h1>
+          <p class="text-slate-400 mt-1">Aprende a dominar Mibio con videos cortos y prácticos.</p>
+        </div>
+      </div>
+
+      <!-- Hero destacado -->
+      <section class="mt-6">
+        <div class="rounded-2xl overflow-hidden border border-indigo-700/30 bg-gradient-to-r from-indigo-600/20 to-fuchsia-600/20">
+          <div class="grid lg:grid-cols-2">
+            <div class="p-5 md:p-6">
+              <span class="text-xs rounded-full border border-indigo-500/40 bg-indigo-500/15 px-2.5 py-0.5 text-indigo-300">Recomendado</span>
+              <h2 class="text-xl md:text-2xl font-extrabold mt-2">Crea tu primera tarjeta en 10 minutos</h2>
+              <p class="text-slate-300 mt-2">Desde elegir una plantilla hasta compartirla con QR. Consejos de diseño, enlaces y mejores prácticas.</p>
+              <div class="mt-4 flex flex-wrap gap-2 text-sm">
+                <span class="px-2 py-1 rounded-lg bg-slate-800 border border-slate-700/60">Básico</span>
+                <span class="px-2 py-1 rounded-lg bg-slate-800 border border-slate-700/60">Tarjetas</span>
+                <span class="px-2 py-1 rounded-lg bg-slate-800 border border-slate-700/60">10:15</span>
+              </div>
+              <button
+                class="mt-5 inline-flex items-center gap-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-2 font-semibold"
+                data-open-tutorial="t2"
+              >
+                ▶ Reproducir ahora
+              </button>
+            </div>
+            <div class="relative min-h-[220px] lg:min-h-[300px]">
+              <img
+                src="https://images.unsplash.com/photo-1521737604893-d14cc237f11d?q=80&w=1600&auto=format&fit=crop"
+                alt="Crea tu primera tarjeta"
+                class="absolute inset-0 w-full h-full object-cover opacity-90"
+              />
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-900/60 to-transparent"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Filtros / Búsqueda -->
+      <section class="mt-6">
+        <div class="grid md:grid-cols-[1fr_240px_200px] gap-3">
+          <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-2">
+            <input id="searchInput" type="search" placeholder="Buscar tutorial (ej. QR, GA4, carpetas)…"
+                   class="w-full bg-transparent outline-none px-2 py-1.5 text-sm" />
+          </div>
+          <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-2">
+            <select id="categoryFilter" class="w-full bg-transparent outline-none px-2 py-1.5 text-sm">
+              <option value="">Todas las categorías</option>
+              {% for c in categories %}
+              <option value="{{ c }}">{{ c }}</option>
+              {% endfor %}
+            </select>
+          </div>
+          <div class="rounded-xl border border-slate-800 bg-slate-900/60 p-2">
+            <select id="levelFilter" class="w-full bg-transparent outline-none px-2 py-1.5 text-sm">
+              <option value="">Todos los niveles</option>
+              {% for l in levels %}
+              <option value="{{ l }}">{{ l }}</option>
+              {% endfor %}
+            </select>
+          </div>
+        </div>
+      </section>
+
+      <!-- Grid de tutoriales -->
+      <section class="mt-6">
+        <div id="tutorialGrid" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+          {% for t in tutorials %}
+          <article
+            class="rounded-2xl border border-slate-800 bg-slate-900/60 overflow-hidden hover:border-slate-700 transition"
+            data-title="{{ t.title|lower }}"
+            data-category="{{ t.category }}"
+            data-level="{{ t.level }}"
+          >
+            <div class="relative aspect-video">
+              <img src="{{ t.thumb }}" alt="{{ t.title }}" class="w-full h-full object-cover" />
+              <div class="absolute inset-0 bg-gradient-to-t from-slate-900/70 to-transparent"></div>
+              <span class="absolute bottom-2 right-2 text-[11px] px-2 py-0.5 rounded bg-black/60">{{ t.duration }}</span>
+            </div>
+            <div class="p-4">
+              <div class="flex items-center gap-2 text-[11px] text-slate-300">
+                <span class="px-2 py-0.5 rounded-lg bg-slate-800 border border-slate-700/60">{{ t.level }}</span>
+                <span class="px-2 py-0.5 rounded-lg bg-slate-800 border border-slate-700/60">{{ t.category }}</span>
+              </div>
+              <h3 class="mt-2 font-bold leading-tight">{{ t.title }}</h3>
+              <p class="mt-1 text-sm text-slate-400 line-clamp-2">{{ t.desc }}</p>
+
+              <div class="mt-3 flex items-center justify-between">
+                <button
+                  class="inline-flex items-center gap-2 rounded-lg bg-indigo-600 hover:bg-indigo-500 px-3 py-1.5 text-sm font-semibold"
+                  data-open-tutorial="{{ t.id }}"
+                >
+                  ▶ Ver
+                </button>
+                <a href="#" class="text-xs text-slate-400 hover:text-slate-200">Agregar a favoritos</a>
+              </div>
+            </div>
+          </article>
+          {% endfor %}
+        </div>
+      </section>
+
+      <!-- Sugerencias -->
+      <section class="mt-10">
+        <div class="rounded-2xl border border-slate-800 bg-slate-900/60 p-5">
+          <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+            <div>
+              <h4 class="font-semibold">¿No encuentras algo?</h4>
+              <p class="text-sm text-slate-400">Pídenos un tutorial y lo añadimos a la biblioteca.</p>
+            </div>
+            <a href="{% url 'dashboard:user_support' %}" class="rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-700/70 px-4 py-2 text-sm">Abrir ticket</a>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<!-- Modal Player -->
+<div id="playerModal" class="fixed inset-0 z-50 hidden">
+  <div class="absolute inset-0 bg-black/70"></div>
+  <div class="relative mx-auto max-w-5xl mt-16 rounded-2xl border border-slate-700 bg-slate-900 overflow-hidden">
+    <div class="flex items-center justify-between px-4 py-3 border-b border-slate-800">
+      <div class="font-semibold" id="playerTitle">Reproduciendo</div>
+      <button id="playerClose" class="text-slate-400 hover:text-slate-200">✕</button>
+    </div>
+    <div class="relative bg-black">
+      <!-- El contenedor cambia entre iframe (YouTube) y <video> (mp4) -->
+      <div class="relative w-full" style="aspect-ratio:16/9">
+        <div id="playerSlot" class="absolute inset-0"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  // --- Indexación básica de tutoriales desde el DOM (sin más fetch)
+  const TUTORIALS = [
+    {% for t in tutorials %}
+    {
+      id: "{{ t.id }}",
+      title: "{{ t.title|escapejs }}",
+      source: "{{ t.source }}",
+      youtube_id: "{{ t.youtube_id|default:'' }}",
+      mp4: "{{ t.mp4|default:'' }}"
+    },
+    {% endfor %}
+  ];
+
+  // Modal helpers
+  const playerModal = document.getElementById('playerModal');
+  const playerSlot  = document.getElementById('playerSlot');
+  const playerTitle = document.getElementById('playerTitle');
+  const playerClose = document.getElementById('playerClose');
+
+  function openPlayer(tid){
+    const t = TUTORIALS.find(x => x.id === tid);
+    if(!t) return;
+    playerTitle.textContent = t.title;
+    playerSlot.innerHTML = ''; // reset
+
+    if(t.source === 'youtube' && t.youtube_id){
+      // YouTube con modo privacidad
+      const src = `https://www.youtube-nocookie.com/embed/${t.youtube_id}?rel=0&modestbranding=1&autoplay=1`;
+      playerSlot.innerHTML = `<iframe class="w-full h-full" src="${src}" frameborder="0" allow="autoplay; encrypted-media" allowfullscreen></iframe>`;
+    }else if(t.source === 'mp4' && t.mp4){
+      playerSlot.innerHTML = `<video class="w-full h-full" src="${t.mp4}" controls autoplay playsinline></video>`;
+    }else{
+      playerSlot.innerHTML = `<div class="w-full h-full grid place-items-center text-slate-300">No se pudo cargar el video</div>`;
+    }
+    playerModal.classList.remove('hidden');
+    document.body.classList.add('overflow-hidden');
+  }
+
+  function closePlayer(){
+    playerModal.classList.add('hidden');
+    document.body.classList.remove('overflow-hidden');
+    playerSlot.innerHTML = ''; // detener reproducción
+  }
+
+  document.addEventListener('click', (e)=>{
+    const btn = e.target.closest('[data-open-tutorial]');
+    if(btn){ openPlayer(btn.getAttribute('data-open-tutorial')); }
+    if(e.target === playerModal) closePlayer();
+  });
+  playerClose.addEventListener('click', closePlayer);
+
+  // Búsqueda / filtros client-side
+  const grid   = document.getElementById('tutorialGrid');
+  const qInp   = document.getElementById('searchInput');
+  const catSel = document.getElementById('categoryFilter');
+  const levSel = document.getElementById('levelFilter');
+
+  function applyFilters(){
+    const q   = (qInp.value || '').trim().toLowerCase();
+    const cat = catSel.value;
+    const lev = levSel.value;
+
+    grid.querySelectorAll('article').forEach(card=>{
+      const title = card.dataset.title || '';
+      const cc = card.dataset.category || '';
+      const ll = card.dataset.level || '';
+      const match =
+        (q === '' || title.includes(q)) &&
+        (cat === '' || cc === cat) &&
+        (lev === '' || ll === lev);
+      card.style.display = match ? '' : 'none';
+    });
+  }
+  [qInp, catSel, levSel].forEach(el => el && el.addEventListener('input', applyFilters));
+  [catSel, levSel].forEach(el => el && el.addEventListener('change', applyFilters));
+</script>
+{% endblock %}

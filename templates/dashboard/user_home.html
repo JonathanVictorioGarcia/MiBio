@@ -1,0 +1,115 @@
+{% extends "base.html" %}
+{% block title %}Mi Panel - Mibio{% endblock %}
+
+{% block body %}
+<div class="grid min-h-dvh md:grid-cols-[260px_1fr]">
+  <!-- SIDEBAR (mismo en todas las páginas) -->
+  <aside class="bg-slate-900/70 border-r border-slate-800 p-4 md:sticky md:top-0 md:h-dvh overflow-auto no-scrollbar">
+    {% include "dashboard/_sidebar_user.html" %}
+
+  </aside>
+
+  <!-- MAIN -->
+  <main class="p-5 md:p-8 space-y-6">
+    <!-- Header -->
+    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+      <div>
+        <h2 class="text-xl md:text-2xl font-semibold">
+          Hola, {{ request.user.first_name|default:request.user.username }} 👋
+        </h2>
+        <p class="text-sm text-slate-400">
+          Administra tus vCards, crea nuevas y revisa estadísticas.
+        </p>
+      </div>
+      <div class="flex items-center gap-2">
+        <a href="{% url 'dashboard:user_vcards_list' %}" class="px-3 py-2 rounded-lg hover:bg-slate-800">
+          🗂 Mis tarjetas
+        </a>
+        <a href="{% url 'dashboard:user_vcard_create' %}"
+           class="inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-indigo-600 text-white hover:bg-indigo-500">
+          + Crear tarjeta
+        </a>
+      </div>
+    </div>
+
+    <!-- KPIs -->
+    <section class="grid sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-4">
+        <p class="text-xs text-slate-400">Tarjetas activas</p>
+        <p class="text-2xl font-semibold mt-1">1</p>
+      </div>
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-4">
+        <p class="text-xs text-slate-400">Vistas (30 días)</p>
+        <p class="text-2xl font-semibold mt-1">324</p>
+      </div>
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-4">
+        <p class="text-xs text-slate-400">Clicks a WhatsApp</p>
+        <p class="text-2xl font-semibold mt-1">57</p>
+      </div>
+      <div class="rounded-2xl border border-slate-800 bg-slate-900/50 p-4">
+        <p class="text-xs text-slate-400">Límite de tu plan</p>
+        <p class="text-2xl font-semibold mt-1">1 / 1</p>
+      </div>
+    </section>
+
+    <!-- Lista de vCards -->
+    <section class="rounded-2xl border border-slate-800 overflow-hidden">
+      <div class="flex items-center justify-between p-4 bg-slate-900/50">
+        <h3 class="font-medium">Mis tarjetas</h3>
+        <div class="flex items-center gap-2">
+          <input type="text" placeholder="Buscar…"
+                 class="px-3 py-1.5 text-sm rounded-lg bg-slate-900 border border-slate-800 outline-none" />
+          <select class="px-3 py-1.5 text-sm rounded-lg bg-slate-900 border border-slate-800 outline-none">
+            <option>Recientes</option>
+            <option>A-Z</option>
+          </select>
+        </div>
+      </div>
+      <div class="overflow-x-auto bg-slate-900/30">
+        <table class="min-w-full text-sm">
+          <thead class="text-slate-300 bg-slate-900/60">
+            <tr>
+              <th class="text-left font-medium px-4 py-2">Nombre</th>
+              <th class="text-left font-medium px-4 py-2">URL</th>
+              <th class="text-left font-medium px-4 py-2">Estado</th>
+              <th class="text-left font-medium px-4 py-2">Última edición</th>
+              <th class="text-right font-medium px-4 py-2">Acciones</th>
+            </tr>
+          </thead>
+          <tbody>
+            <!-- Ejemplo estático; luego lo conectamos a BD -->
+            <tr class="border-t border-slate-800/60">
+              <td class="px-4 py-3">Mi tarjeta principal</td>
+              <td class="px-4 py-3"><a class="text-indigo-300 hover:underline" href="#">/mi-url</a></td>
+              <td class="px-4 py-3">
+                <span class="px-2 py-0.5 rounded-full bg-emerald-600/20 text-emerald-300 border border-emerald-700/30 text-xs">Activa</span>
+              </td>
+              <td class="px-4 py-3">hoy</td>
+              <td class="px-4 py-3 text-right">
+                <div class="inline-flex gap-2">
+                  <a href="#" class="px-3 py-1.5 rounded-lg border border-slate-800 hover:bg-slate-900">Ver</a>
+                  <a href="#" class="px-3 py-1.5 rounded-lg bg-sky-600 hover:bg-sky-500">Editar</a>
+                  <button class="px-3 py-1.5 rounded-lg border border-rose-800/60 text-rose-300 hover:bg-rose-900/20">Eliminar</button>
+                </div>
+              </td>
+            </tr>
+            <!-- /Ejemplo -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- Banner de upsell -->
+    <section class="rounded-2xl border border-slate-800 bg-gradient-to-r from-indigo-600/20 to-fuchsia-600/20 p-5 flex flex-col md:flex-row md:items-center md:justify-between gap-3">
+      <div>
+        <h4 class="font-semibold">¿Necesitas más tarjetas?</h4>
+        <p class="text-sm text-slate-300">Mejora a <span class="font-medium">Pro</span> y crea hasta 5 vCards.</p>
+      </div>
+      <a href="{% url 'dashboard:user_upgrade' %}"
+         class="px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 font-medium w-fit">
+        Mejorar plan
+      </a>
+    </section>
+  </main>
+</div>
+{% endblock %}

@@ -1,0 +1,29 @@
+{# templates/folders/_chips.html #}
+<div id="foldersChips" class="mt-3 flex flex-wrap gap-2">
+  {% if folders %}
+    {% for f in folders %}
+      <span class="chip">
+        <span class="dot" style="background: {{ f.color|default:'#6366f1' }}"></span> {{ f.name }}
+        <span class="relative">
+          <button type="button"
+                  class="ml-1 text-slate-300 hover:text-white"
+                  aria-haspopup="menu" aria-expanded="false"
+                  onclick="toggleFolderMenu(this)">⋯</button>
+
+          <div class="folder-menu" role="menu" hidden>
+            <button type="button" class="folder-menu-item"
+                    onclick="openFolderModal({mode:'edit', id:'{{ f.id }}', name:'{{ f.name|escapejs }}', color:'{{ f.color|escapejs }}'})">
+              Editar
+            </button>
+            <button type="button" class="folder-menu-item text-rose-600"
+                    onclick="openDeleteConfirm('{{ f.id }}','{{ f.name|escapejs }}')">
+              Eliminar
+            </button>
+          </div>
+        </span>
+      </span>
+    {% endfor %}
+  {% else %}
+    <span class="chip">Sin carpetas</span>
+  {% endif %}
+</div>

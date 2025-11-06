@@ -205,3 +205,77 @@ cython_debug/
 marimo/_static/
 marimo/_lsp/
 __marimo__/
+=======
+﻿# --- Python ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.pyc
+*.pyd
+*.so
+*.egg-info/
+*.egg
+*.log
+
+# Virtualenvs
+.venv/
+venv/
+env/
+ENV/
+
+# --- Django ---
+# Base de datos local (si usas SQLite)
+db.sqlite3
+*.sqlite3
+
+# Archivos estáticos recolectados por collectstatic
+staticfiles/
+static_root/
+# Si usas un directorio dedicado a archivos de usuario:
+media/
+# (Si tu 'media' debe versionarse, elimina la línea anterior)
+
+# Variables de entorno / secretos
+.env
+*.env
+
+# Si generas settings locales
+settings_local.py
+local_settings.py
+
+# --- Tests / Coverage ---
+.coverage
+.coverage.*
+htmlcov/
+.tox/
+.pytest_cache/
+nosetests.xml
+coverage.xml
+
+# --- Node / Frontend (opcional si usas build tools) ---
+node_modules/
+dist/
+build/
+.cache/
+.parcel-cache/
+*.map
+
+# --- IDEs / OS ---
+.vscode/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+!.vscode/launch.json
+!.vscode/tasks.json
+.idea/
+*.code-workspace
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# --- Otros temporales ---
+*.tmp
+*.bak
+*.swp
+>>>>>>> 3beed6c (chore: primer commit (Django + .gitignore))

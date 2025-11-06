@@ -1,0 +1,142 @@
+{% extends "admin/_base.html" %}
+{% block title %}Resumen · Admin · MiBio{% endblock %}
+{% block page_title %}Resumen general{% endblock %}
+{% block page_subtitle %}KPIs, tendencias y actividad reciente{% endblock %}
+
+{% block content %}
+  <!-- KPIs -->
+  <section class="grid sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+    {% for kpi in kpis %}
+    <div class="card card-hover p-4">
+      <div class="flex items-center justify-between">
+        <p class="text-sm text-slate-400">{{ kpi.label }}</p>
+        <span class="badge" style="border-color:rgba(73,173,255,.35); color:#cfe9ff;">
+          {{ kpi.delta }}%
+          {% if kpi.delta > 0 %}
+            <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor"><path d="M10 4l6 8H4l6-8z"/></svg>
+          {% else %}
+            <svg class="w-3.5 h-3.5" viewBox="0 0 20 20" fill="currentColor" style="transform:rotate(180deg)"><path d="M10 4l6 8H4l6-8z"/></svg>
+          {% endif %}
+        </span>
+      </div>
+      <div class="mt-2 flex items-end justify-between">
+        <h3 class="text-2xl font-semibold">{{ kpi.value }}</h3>
+        <span class="text-xs text-slate-500">{{ kpi.note }}</span>
+      </div>
+    </div>
+    {% endfor %}
+  </section>
+
+  <!-- Charts + actividad -->
+  <section class="grid xl:grid-cols-3 gap-6 mb-8">
+    <!-- Line chart -->
+    <div class="xl:col-span-2 card p-4">
+      <div class="flex items-center justify-between mb-2">
+        <h4 class="font-semibold">Nuevos usuarios (últimos 12 meses)</h4>
+        <span class="text-xs text-slate-400">Mock data</span>
+      </div>
+      <canvas id="chartUsers" class="w-full h-64"></canvas>
+    </div>
+
+    <!-- Doughnut -->
+    <div class="card p-4">
+      <div class="flex items-center justify-between mb-2">
+        <h4 class="font-semibold">Distribución de planes</h4>
+        <span class="text-xs text-slate-400">Mock data</span>
+      </div>
+      <canvas id="chartPlans" class="w-full h-64"></canvas>
+      <div class="mt-3 grid grid-cols-3 text-xs text-slate-300">
+        <div><span class="badge">Básico</span></div>
+        <div><span class="badge">Pro</span></div>
+        <div><span class="badge">Empresarial</span></div>
+      </div>
+    </div>
+
+    <!-- Actividad reciente -->
+    <div class="xl:col-span-3 card p-4">
+      <div class="flex items-center justify-between mb-3">
+        <h4 class="font-semibold">Actividad reciente</h4>
+        <a href="#" class="text-sm text-brand-500 hover:underline">Ver todo</a>
+      </div>
+      <div class="overflow-auto scrollbar-thin">
+        <table class="table-base min-w-[700px]">
+          <thead>
+            <tr>
+              <th>Fecha</th>
+              <th>Usuario</th>
+              <th>Acción</th>
+              <th>Entidad</th>
+              <th>Detalles</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for row in activity %}
+            <tr class="hover:bg-white/5">
+              <td class="whitespace-nowrap">{{ row.date }}</td>
+              <td class="whitespace-nowrap">{{ row.user }}</td>
+              <td class="whitespace-nowrap">
+                <span class="badge">{{ row.action }}</span>
+              </td>
+              <td class="whitespace-nowrap">{{ row.entity }}</td>
+              <td class="text-slate-300">{{ row.detail }}</td>
+            </tr>
+            {% empty %}
+            <tr><td colspan="5" class="py-6 text-center text-slate-400">Sin actividad</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </section>
+{% endblock %}
+
+{% block body_extra %}
+<script>
+  // Datos mock inyectados por contexto
+  const months = {{ months|safe }};
+  const usersSeries = {{ users_series|safe }};
+  const plansData = {{ plans_data|safe }};
+
+  // Line chart
+  new Chart(document.getElementById('chartUsers'), {
+    type: 'line',
+    data: {
+      labels: months,
+      datasets: [{
+        label: 'Altas',
+        data: usersSeries,
+        tension: .35,
+        borderColor: '#49adff',
+        backgroundColor: 'rgba(73,173,255,.15)',
+        fill: true,
+        pointRadius: 0,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        x: { ticks: { color:'#9ca3af' }, grid:{ color:'rgba(255,255,255,.05)'} },
+        y: { ticks: { color:'#9ca3af' }, grid:{ color:'rgba(255,255,255,.05)'} }
+      }
+    }
+  });
+
+  // Doughnut
+  new Chart(document.getElementById('chartPlans'), {
+    type: 'doughnut',
+    data: {
+      labels: ['Básico','Pro','Empresarial'],
+      datasets: [{
+        data: plansData,
+        backgroundColor: ['#1d6fbe','#49adff','#f989a3'],
+        borderWidth: 0
+      }]
+    },
+    options: {
+      cutout: '60%',
+      plugins: { legend: { display:false } }
+    }
+  });
+</script>
+{% endblock %}
