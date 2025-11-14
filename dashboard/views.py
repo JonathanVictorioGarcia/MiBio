@@ -8,16 +8,13 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.shortcuts import render, redirect
+from django.http import HttpResponse
+from django.contrib.auth import get_user_model
 
-
-# from django.shortcuts import render
 from datetime import date
 from calendar import month_abbr
 
 from .auth import staff_required
-
-# Importamos el formulario para "Editar perfil"
-# Asegúrate de tener dashboard/forms.py con ProfileForm definido.
 from .forms import ProfileForm
 
 
@@ -25,9 +22,55 @@ from .forms import ProfileForm
 # Helper: validar si el usuario es ADMIN (para vista admin)
 # ==========================================================
 def is_admin(user):
-    # Comprobamos un atributo "role" en el usuario. Si es "ADMIN", devuelve True.
-    # Si el usuario no tiene "role", devolvemos string vacío ("") para no romper.
-    return getattr(user, "role", "") == "ADMIN"
+    """
+    Consideramos admin si:
+    - Tiene role == "ADMIN"   (modelo con roles), o
+    - Es staff, o
+    - Es superuser.
+    Así evitamos quedarnos fuera si el campo role no está configurado.
+    """
+    role = getattr(user, "role", "")
+    return role == "ADMIN" or user.is_staff or user.is_superuser
+
+
+# ==========================================================
+# VISTA TEMPORAL: crear usuarios iniciales en producción
+# ==========================================================
+def create_initial_users(request):
+    """
+    Vista TEMPORAL para crear los usuarios iniciales:
+
+      - Admin / SoyAmin  (superusuario)
+      - usuario1 / ContraseñaSegura123  (usuario normal)
+
+    IMPORTANTE: Después de ejecutar esta URL y verificar que puedes
+    iniciar sesión, BORRA esta vista y la ruta en config/urls.py.
+    """
+    User = get_user_model()
+    creados = []
+
+    if not User.objects.filter(username="Admin").exists():
+        User.objects.create_superuser(
+            username="Admin",
+            password="SoyAmin",
+            email="admin@mibio.com",
+        )
+        creados.append("Admin")
+
+    if not User.objects.filter(username="usuario1").exists():
+        User.objects.create_user(
+            username="usuario1",
+            password="ContraseñaSegura123",
+            email="usuario1@mibio.com",
+        )
+        creados.append("usuario1")
+
+    if not creados:
+        msg = "Los usuarios ya existían. No se creó ninguno nuevo."
+    else:
+        msg = "Usuarios creados: " + ", ".join(creados)
+
+    return HttpResponse(msg)
 
 
 # ==========================================================
@@ -134,7 +177,6 @@ def user_upgrade(request):
         {"q": "¿Cómo integro Google Analytics?", "a": "En Pro y Business puedes añadir tu ID de GA4 por tarjeta o a nivel cuenta."},
     ]
 
-    # Pasamos todo al template como contexto
     context = {
         "current_plan": current_plan,
         "plans": plans,
@@ -182,17 +224,17 @@ def user_support(request):
 
     # Tickets recientes del usuario (mock)
     recent_tickets = [
-        {"id":"#3241", "subject":"No carga la previsualización", "status":"Abierto", "updated":"ayer 16:20"},
-        {"id":"#3238", "subject":"Error al subir imagen", "status":"En progreso", "updated":"ayer 10:41"},
-        {"id":"#3210", "subject":"Cambio de plan a Pro", "status":"Resuelto", "updated":"hace 3 días"},
+        {"id": "#3241", "subject": "No carga la previsualización", "status": "Abierto", "updated": "ayer 16:20"},
+        {"id": "#3238", "subject": "Error al subir imagen", "status": "En progreso", "updated": "ayer 10:41"},
+        {"id": "#3210", "subject": "Cambio de plan a Pro", "status": "Resuelto", "updated": "hace 3 días"},
     ]
 
     # FAQs (mock)
     faqs = [
-        {"q":"¿Cómo creo y comparto mi tarjeta?", "a":"Desde “Mis tarjetas” crea una nueva, personaliza y comparte el enlace o QR."},
-        {"q":"¿Puedo conectar Google Analytics?", "a":"Sí, en Pro/Business puedes añadir tu ID de GA4 por tarjeta o a nivel cuenta."},
-        {"q":"¿Cómo cambio o cancelo mi plan?", "a":"Ve a “Mejorar plan”. No hay permanencia; el cambio se prorratea."},
-        {"q":"¿Dónde descargo mis facturas?", "a":"En la misma sección de plan, encontrarás el historial de facturación."},
+        {"q": "¿Cómo creo y comparto mi tarjeta?", "a": "Desde “Mis tarjetas” crea una nueva, personaliza y comparte el enlace o QR."},
+        {"q": "¿Puedo conectar Google Analytics?", "a": "Sí, en Pro/Business puedes añadir tu ID de GA4 por tarjeta o a nivel cuenta."},
+        {"q": "¿Cómo cambio o cancelo mi plan?", "a": "Ve a “Mejorar plan”. No hay permanencia; el cambio se prorratea."},
+        {"q": "¿Dónde descargo mis facturas?", "a": "En la misma sección de plan, encontrarás el historial de facturación."},
     ]
 
     context = {
@@ -215,10 +257,10 @@ def user_support(request):
 def admin_home(request):
     # KPIs mock
     kpis = [
-        {"label":"Usuarios activos", "value":"1,284", "delta": 8.2, "note":"vs mes anterior"},
-        {"label":"Tarjetas publicadas", "value":"3,920", "delta": 3.1, "note":"total"},
-        {"label":"Ingresos (MXN)", "value":"$78,450", "delta": 5.6, "note":"últimos 30 días"},
-        {"label":"Tickets abiertos", "value":"12", "delta": -10.5, "note":"variación"},
+        {"label": "Usuarios activos", "value": "1,284", "delta": 8.2, "note": "vs mes anterior"},
+        {"label": "Tarjetas publicadas", "value": "3,920", "delta": 3.1, "note": "total"},
+        {"label": "Ingresos (MXN)", "value": "$78,450", "delta": 5.6, "note": "últimos 30 días"},
+        {"label": "Tickets abiertos", "value": "12", "delta": -10.5, "note": "variación"},
     ]
     # Serie mensual mock (últimos 12 meses)
     months = []
@@ -226,17 +268,17 @@ def admin_home(request):
     for i in range(11, -1, -1):
         m = (date.today().month - i - 1) % 12 + 1
         months.append(month_abbr[m])
-        users_series.append(120 + (i*7) % 60)  # mock simple
+        users_series.append(120 + (i * 7) % 60)  # mock simple
 
     # Distribución de planes mock
     plans_data = [52, 33, 15]
 
     # Actividad mock
     activity = [
-        {"date":"2025-10-26 18:42", "user":"ana@demo.com", "action":"Alta", "entity":"Usuario", "detail":"Se registró en plan Básico"},
-        {"date":"2025-10-26 16:03", "user":"carlos@demo.com", "action":"Upgrade", "entity":"Plan", "detail":"Básico → Pro"},
-        {"date":"2025-10-25 13:11", "user":"ventas@empresa.com", "action":"Publicación", "entity":"Tarjeta", "detail":"/coco-playa"},
-        {"date":"2025-10-24 09:58", "user":"soporte@mibio.live", "action":"Cierre", "entity":"Ticket", "detail":"#1024 cerrado"},
+        {"date": "2025-10-26 18:42", "user": "ana@demo.com", "action": "Alta", "entity": "Usuario", "detail": "Se registró en plan Básico"},
+        {"date": "2025-10-26 16:03", "user": "carlos@demo.com", "action": "Upgrade", "entity": "Plan", "detail": "Básico → Pro"},
+        {"date": "2025-10-25 13:11", "user": "ventas@empresa.com", "action": "Publicación", "entity": "Tarjeta", "detail": "/coco-playa"},
+        {"date": "2025-10-24 09:58", "user": "soporte@mibio.live", "action": "Cierre", "entity": "Ticket", "detail": "#1024 cerrado"},
     ]
 
     ctx = {
@@ -248,17 +290,22 @@ def admin_home(request):
     }
     return render(request, "admin/admin_home.html", ctx)
 
+
 def admin_users(request):
     return render(request, "admin/admin_users.html")
+
 
 def admin_vcards(request):
     return render(request, "admin/admin_vcards.html")
 
+
 def admin_plans(request):
     return render(request, "admin/admin_plans.html")
 
+
 def admin_support(request):
     return render(request, "admin/admin_support.html")
+
 
 def admin_settings(request):
     return render(request, "admin/admin_settings.html")
@@ -289,10 +336,8 @@ def edit_profile(request):
             form.save()
             messages.success(request, "Tus datos se han actualizado correctamente.")
             return redirect("dashboard:edit_profile")
-        # Si hay errores de validación, avisamos
         messages.error(request, "Revisa los campos marcados en rojo.")
     else:
-        # Primera carga: traemos datos actuales del usuario
         form = ProfileForm(instance=request.user)
 
     return render(request, "dashboard/edit_profile.html", {"form": form})
@@ -321,7 +366,7 @@ def user_vcards_list(request):
     Por ahora es la interfaz (mock). En el futuro, cargar desde la BD
     las vCards del usuario autenticado.
     """
-    return render(request, 'dashboard/user_vcards_list.html')
+    return render(request, "dashboard/user_vcards_list.html")
 
 
 # ==========================================================
@@ -330,7 +375,7 @@ def user_vcards_list(request):
 @login_required
 def user_stats(request):
     # Sólo render de la página de estadísticas (la UI usa Chart.js con datos demo).
-    return render(request, 'dashboard/user_stats.html')
+    return render(request, "dashboard/user_stats.html")
 
 
 # ==========================================================
@@ -352,7 +397,7 @@ def user_tutorials(request):
             "thumb": "https://images.unsplash.com/photo-1522199710521-72d69614c702?q=80&w=1200&auto=format&fit=crop",
             "source": "youtube",
             "youtube_id": "dQw4w9WgXcQ",
-            "desc": "Tour rápido por el panel y cómo navegar."
+            "desc": "Tour rápido por el panel y cómo navegar.",
         },
         {
             "id": "t2",
@@ -363,7 +408,7 @@ def user_tutorials(request):
             "thumb": "https://images.unsplash.com/photo-1521737604893-d14cc237f11d?q=80&w=1200&auto=format&fit=crop",
             "source": "youtube",
             "youtube_id": "ysz5S6PUM-U",
-            "desc": "Desde plantilla hasta compartir con QR."
+            "desc": "Desde plantilla hasta compartir con QR.",
         },
         {
             "id": "t3",
@@ -374,7 +419,7 @@ def user_tutorials(request):
             "thumb": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?q=80&w=1200&auto=format&fit=crop",
             "source": "mp4",
             "mp4": "https://filesamples.com/samples/video/mp4/sample_640x360.mp4",
-            "desc": "Mejores prácticas para equipos."
+            "desc": "Mejores prácticas para equipos.",
         },
         {
             "id": "t4",
@@ -385,7 +430,7 @@ def user_tutorials(request):
             "thumb": "https://images.unsplash.com/photo-1551281044-8d8d0d8c8c02?q=80&w=1200&auto=format&fit=crop",
             "source": "youtube",
             "youtube_id": "rUWxSEwctFU",
-            "desc": "Lee métricas y conecta Google Analytics."
+            "desc": "Lee métricas y conecta Google Analytics.",
         },
         {
             "id": "t5",
@@ -396,17 +441,21 @@ def user_tutorials(request):
             "thumb": "https://images.unsplash.com/photo-1520975922284-71a0d52b3e51?q=80&w=1200&auto=format&fit=crop",
             "source": "mp4",
             "mp4": "https://filesamples.com/samples/video/mp4/sample_960x400_ocean_with_audio.mp4",
-            "desc": "Paleta, tipografías y componentes."
+            "desc": "Paleta, tipografías y componentes.",
         },
     ]
     categories = ["General", "Tarjetas", "Organización", "Estadísticas", "Diseño"]
     levels = ["Básico", "Intermedio", "Avanzado"]
 
-    return render(request, "dashboard/user_tutorials.html", {
-        "tutorials": tutorials,
-        "categories": categories,
-        "levels": levels,
-    })
+    return render(
+        request,
+        "dashboard/user_tutorials.html",
+        {
+            "tutorials": tutorials,
+            "categories": categories,
+            "levels": levels,
+        },
+    )
 
 
 # ==========================================================
@@ -420,7 +469,6 @@ def user_faqs(request):
     Todo mock por ahora.
     """
 
-    # Categorías sugeridas para filtrar las FAQs (mock)
     categories = [
         "Cuenta y acceso",
         "Tarjetas digitales",
@@ -432,57 +480,91 @@ def user_faqs(request):
         "Soporte y operaciones",
     ]
 
-    # Lista de FAQs (mock) clasificadas por categoría
     faqs = [
         # Cuenta y acceso
-        {"category": "Cuenta y acceso", "q": "¿Olvidé mi contraseña, cómo la restablezco?",
-         "a": "Ve a la pantalla de acceso y haz clic en “¿Olvidaste tu contraseña?”. Recibirás un correo con un enlace para crear una nueva."},
-        {"category": "Cuenta y acceso", "q": "¿Puedo activar 2FA (autenticación en dos pasos)?",
-         "a": "Sí. En Ajustes › Seguridad puedes activar 2FA con aplicación de autenticación (TOTP)."},
-
+        {
+            "category": "Cuenta y acceso",
+            "q": "¿Olvidé mi contraseña, cómo la restablezco?",
+            "a": "Ve a la pantalla de acceso y haz clic en “¿Olvidaste tu contraseña?”. Recibirás un correo con un enlace para crear una nueva.",
+        },
+        {
+            "category": "Cuenta y acceso",
+            "q": "¿Puedo activar 2FA (autenticación en dos pasos)?",
+            "a": "Sí. En Ajustes › Seguridad puedes activar 2FA con aplicación de autenticación (TOTP).",
+        },
         # Tarjetas digitales
-        {"category": "Tarjetas digitales", "q": "¿Cómo creo mi primera tarjeta?",
-         "a": "Desde “Crear tarjeta” elige una plantilla, personaliza tus datos y colores. Guarda y comparte con enlace o QR."},
-        {"category": "Tarjetas digitales", "q": "¿Puedo tener varias tarjetas?",
-         "a": "Según tu plan. Starter permite 1, Pro hasta 10 y Business ilimitadas."},
-
+        {
+            "category": "Tarjetas digitales",
+            "q": "¿Cómo creo mi primera tarjeta?",
+            "a": "Desde “Crear tarjeta” elige una plantilla, personaliza tus datos y colores. Guarda y comparte con enlace o QR.",
+        },
+        {
+            "category": "Tarjetas digitales",
+            "q": "¿Puedo tener varias tarjetas?",
+            "a": "Según tu plan. Starter permite 1, Pro hasta 10 y Business ilimitadas.",
+        },
         # Diseño y branding
-        {"category": "Diseño y branding", "q": "¿Cómo subo mi logo, banner o video?",
-         "a": "En el editor de tarjeta (Perfil) tienes tiles para subir imágenes o video. Aceptamos JPG/PNG y MP4 cortos."},
-        {"category": "Diseño y branding", "q": "¿Puedo usar mi dominio propio?",
-         "a": "Sí, en Pro/Business puedes conectar un dominio o subdominio desde Ajustes › Dominios."},
-
+        {
+            "category": "Diseño y branding",
+            "q": "¿Cómo subo mi logo, banner o video?",
+            "a": "En el editor de tarjeta (Perfil) tienes tiles para subir imágenes o video. Aceptamos JPG/PNG y MP4 cortos.",
+        },
+        {
+            "category": "Diseño y branding",
+            "q": "¿Puedo usar mi dominio propio?",
+            "a": "Sí, en Pro/Business puedes conectar un dominio o subdominio desde Ajustes › Dominios.",
+        },
         # Estadísticas y privacidad
-        {"category": "Estadísticas y privacidad", "q": "¿Qué métricas ofrece Mibio?",
-         "a": "Vistas, origen del tráfico, dispositivos, escaneos de QR y clics en botones/links. Puedes exportar CSV."},
-        {"category": "Estadísticas y privacidad", "q": "¿Puedo integrar GA4?",
-         "a": "Sí, añade tu ID de GA4 en Ajustes o por tarjeta (planes Pro/Business)."},
-
+        {
+            "category": "Estadísticas y privacidad",
+            "q": "¿Qué métricas ofrece Mibio?",
+            "a": "Vistas, origen del tráfico, dispositivos, escaneos de QR y clics en botones/links. Puedes exportar CSV.",
+        },
+        {
+            "category": "Estadísticas y privacidad",
+            "q": "¿Puedo integrar GA4?",
+            "a": "Sí, añade tu ID de GA4 en Ajustes o por tarjeta (planes Pro/Business).",
+        },
         # Planes y facturación
-        {"category": "Planes y facturación", "q": "¿Cómo cambio o cancelo mi plan?",
-         "a": "Desde “Mejorar plan” puedes subir/bajar de plan o cancelar sin permanencia. El cambio se prorratea."},
-        {"category": "Planes y facturación", "q": "¿Emiten facturas?",
-         "a": "Sí. Descarga tus comprobantes en el historial de facturación una vez aplicado el pago."},
-
+        {
+            "category": "Planes y facturación",
+            "q": "¿Cómo cambio o cancelo mi plan?",
+            "a": "Desde “Mejorar plan” puedes subir/bajar de plan o cancelar sin permanencia. El cambio se prorratea.",
+        },
+        {
+            "category": "Planes y facturación",
+            "q": "¿Emiten facturas?",
+            "a": "Sí. Descarga tus comprobantes en el historial de facturación una vez aplicado el pago.",
+        },
         # Integraciones
-        {"category": "Integraciones", "q": "¿Qué integraciones están disponibles?",
-         "a": "GA4, Meta Pixel, Zapier y webhooks. Pronto: HubSpot y Notion (beta)."},
-
+        {
+            "category": "Integraciones",
+            "q": "¿Qué integraciones están disponibles?",
+            "a": "GA4, Meta Pixel, Zapier y webhooks. Pronto: HubSpot y Notion (beta).",
+        },
         # Seguridad y cumplimiento
-        {"category": "Seguridad y cumplimiento", "q": "¿Cómo protegen mis datos?",
-         "a": "Ciframos en tránsito (TLS 1.2+) y aplicamos buenas prácticas de seguridad. Políticas de privacidad y retención vigentes."},
-
+        {
+            "category": "Seguridad y cumplimiento",
+            "q": "¿Cómo protegen mis datos?",
+            "a": "Ciframos en tránsito (TLS 1.2+) y aplicamos buenas prácticas de seguridad. Políticas de privacidad y retención vigentes.",
+        },
         # Soporte y operaciones
-        {"category": "Soporte y operaciones", "q": "¿En qué horario brindan soporte?",
-         "a": "Lun–Vie 9:00–18:00 (CDMX). Pro/Business tienen prioridad de respuesta."},
+        {
+            "category": "Soporte y operaciones",
+            "q": "¿En qué horario brindan soporte?",
+            "a": "Lun–Vie 9:00–18:00 (CDMX). Pro/Business tienen prioridad de respuesta.",
+        },
     ]
 
-    # Chips de sugerencias rápidas (mock)
     quick_suggestions = ["QR", "GA4", "dominio", "plantillas", "exportar CSV", "2FA", "Zapier", "privacidad"]
 
-    return render(request, "dashboard/user_faqs.html", {
-        "categories": categories,
-        "faqs": faqs,
-        "quick_suggestions": quick_suggestions,
-        "active_item": "faqs",  # útil si marcas activo en el sidebar
-    })
+    return render(
+        request,
+        "dashboard/user_faqs.html",
+        {
+            "categories": categories,
+            "faqs": faqs,
+            "quick_suggestions": quick_suggestions,
+            "active_item": "faqs",
+        },
+    )
